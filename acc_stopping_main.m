@@ -5,48 +5,45 @@ root = 'C:\Users\Steven\Desktop\Projects\2022-acc-stopping\';
 dataDir = 'S:\Users\Current Lab Members\Steven Errington\2021_DaJo\mat\';
 cd(root)
 
-% Load datamap
+% Load datamaps
 load([root '\_data\2021-dajo-datamap.mat'])
+ephysLog = importOnlineEphysLogMaster;
 
-% Loop session
-for session = 1:size(dajo_datamap,1)
-    
-    % Let the user know where we are at!
-    fprintf('Extracting event time from %s | %i of %i \n',...
-    dajo_datamap.behInfo(session,1).dataFile,...
-    session, size(dajo_datamap,1))
-
-    % Load beh data
-    beh_data = load(fullfile(dataDir, dajo_datamap.behInfo(session,1).dataFile));
-    
-    % Get trial indices and key event times for alignment
-    [ttx, ~, trialEventTimes] = processSessionTrials...
-        (beh_data.events.stateFlags_,...
-         beh_data.events.Infos_);
-     
-     % Get an estimate of stop-signal reaction time
-     [stopSignalBeh, ~] = extractStopBeh...
-         (beh_data.events.stateFlags_,...
-         beh_data.events.Infos_,...
-         ttx);
-     
-     % Find trials with no stop-signals
-     no_stopSignal_trls = find(isnan(trialEventTimes.stopSignal));
-     
-     % For each no stop-signal trial
-     for trlIdx = 1:length(no_stopSignal_trls)
-         trl = no_stopSignal_trls(trlIdx);
-         
-         % Get an estimated SSRT time for trials where there was a target.
-         trialEventTimes.ssrt(trl) = ...
-         	trialEventTimes.target(trl) + ... % Get the target time (as it's NaN for no target, we won't get a value).
-            round(beh_data.events.stateFlags_.LastSsdIdx(trl)*(1000/60)) +... % ... add the SSD (ms) from the previous stop trial
-            stopSignalBeh.ssrt.integrationWeighted; % ... and add SSRT. 
-
-     end
-     
-     writetable(trialEventTimes,...
-         [root '\_data\event-times\' dajo_datamap.behInfo(session,1).dataFile '-events.csv']);
-
+% Find ACC sessions
+for sessionIdx = 1:size(dajo_datamap,1)
+    acc_session_flag(sessionIdx,1) = sum(strcmp(dajo_datamap.neurophysInfo{sessionIdx}.area,'ACC')) > 0;
 end
+% Make an ACC specific dataframe to reference from
+dajo_datamap_acc = dajo_datamap(acc_session_flag,:);
 
+% Define ACC parameters
+accParam.corticalDepth = 2000; % Cortical depth of ACC bank(in um);
+accParam.sulcusDepth = 100; % Cortical depth of ACC bank(in um);
+
+% Loop through ACC sessions
+parfor sessionIdx = 1:size(dajo_datamap_acc,1)
+    
+    fprintf('Analysing session %i of %i | %s.          \n',...
+        sessionIdx,size(dajo_datamap_acc,1),dajo_datamap_acc.session{sessionIdx});
+    
+    % Load in behavioural data
+    behData = load([dataDir dajo_datamap_acc.behInfo(sessionIdx).dataFile]);
+    
+    % Get event times and trial types from the session for future alignments
+    [ttx, ttx_history, trialEventTimes] =...
+        processSessionTrials (behData.events.stateFlags_, behData.events.Infos_);
+    
+    % For each electrode in the session
+    for elIdx = 1 : dajo_datamap_acc.nElectrodes(sessionIdx)
+        
+        % Load the Spike data and aligned it on SSRT (5) and Saccade (6)
+        spkData = load([dataDir dajo_datamap_acc.neurophysInfo{sessionIdx}.spkFile{elIdx}]);
+        tdtLFP = alignLFP(trialEventTimes(:,[5:6]), lfpData.lfp, [-500 1000]);
+        
+        % Find channels that cover dACC and vACC
+        [accChannels] = findACCchannels(sessionIdx, elIdx, dajo_datamap_acc, ephysLog, accParam);
+        
+     
+        
+    end
+end
