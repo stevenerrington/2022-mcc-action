@@ -11,7 +11,7 @@ for iv = 1:length(varStrInd)
 end
 
 %% Main script
-for dataFileIdx = 1:length(dataFiles_neural)
+parfor (dataFileIdx = 1:length(dataFiles_neural),4)
     % We first report loop status:
     fprintf('Extracting: %s ... [%i of %i]  \n',dataFiles_neural{dataFileIdx},dataFileIdx,length(dataFiles_neural))
     
@@ -30,9 +30,11 @@ for dataFileIdx = 1:length(dataFiles_neural)
 
     % Convolve spike times to get continous trace
     lfp_aligned = [];
-    lfp_aligned = lfp_alignTrials(behavior(behaviorIdx).trialEventTimes(:,[2,3,5,6,7,9]),...
+    lfp_aligned = lfp_alignTrials(behavior(behaviorIdx).trialEventTimes(:,[3,5,6,7,9]),...
         LFP, [-1000 2000]);
 
-
+    % Save the LFP for each individual channel. This process is used to
+    % stop file sizes becoming too large and crashing matlab.
+    util_saveLFP(lfp_aligned,neuralFilename,'C:\Users\Steven\Desktop\Projects\2022-acc-stopping\_data\lfp');
     
 end

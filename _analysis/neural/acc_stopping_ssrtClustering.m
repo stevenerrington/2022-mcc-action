@@ -1,11 +1,11 @@
 %% Clustering
 
-sdfWindow = [-200:600];
-inputSDF = {signal_collapse.stopSignal_artifical.C(:,sdfWindow+1000),...
-    signal_collapse.stopSignal_artifical.GO(:,sdfWindow+1000)};
+sdfWindow = [-200:500];
+inputSDF = {signal_collapse.ssrt.C(:,sdfWindow+1000),...
+    signal_collapse.ssrt.GO(:,sdfWindow+1000)};
 
 sdfTimes = {sdfWindow, sdfWindow};
-sdfEpoch = {[-200:200],[-200:200]};
+sdfEpoch = {[0:500],[0:500]};
 
 colorMapping = [1,2];
 
@@ -13,7 +13,7 @@ colorMapping = [1,2];
     consensusCluster(inputSDF,sdfTimes,'-e',sdfEpoch,'-ei',colorMapping);
 normResp = scaleResp(inputSDF,sdfTimes,'max');
 
-nClusters_manual = 5; clusterNeurons = [];
+nClusters_manual = 6; clusterNeurons = [];
 for i = 1:nClusters_manual
     clusterNeurons{i} = find(sortIDs(:,nClusters_manual) == i );
 end
