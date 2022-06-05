@@ -16,14 +16,16 @@ dajo_datamap_curated = data_sessionCurate...
 dataFiles_beh = unique(dajo_datamap_curated.sessionBeh);
 dataFiles_neural = unique(dajo_datamap_curated.dataFilename);
 
+dajo_datamap_curated(find( == unique(dajo_datamap_curated.sessionIdx)))
+
 %% Extract data
 % Behavior -------------------------------------------
 behavior = acc_stopping_extractBeh(dirs,dataFiles_beh);
 
-% Look at post-stop slowing
 
 
-beh_poststopslowing
+
+
 
 
 

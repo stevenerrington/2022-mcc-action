@@ -1,4 +1,4 @@
-function signal_average = acc_stopping_extractLFP(dirs,dataFiles_beh,dataFiles_neural,behavior,varargin)
+function acc_stopping_extractLFP(dirs,dataFiles_beh,dataFiles_neural,behavior,varargin)
 
 
 %% Decode varargin
@@ -11,7 +11,7 @@ for iv = 1:length(varStrInd)
 end
 
 %% Main script
-parfor dataFileIdx = 1:length(dataFiles_neural)
+for dataFileIdx = 1:length(dataFiles_neural)
     % We first report loop status:
     fprintf('Extracting: %s ... [%i of %i]  \n',dataFiles_neural{dataFileIdx},dataFileIdx,length(dataFiles_neural))
     
@@ -30,18 +30,9 @@ parfor dataFileIdx = 1:length(dataFiles_neural)
 
     % Convolve spike times to get continous trace
     lfp_aligned = [];
-    lfp_aligned = lfp_alignTrials(behavior(behaviorIdx).trialEventTimes(:,[3,6,9]),...
+    lfp_aligned = lfp_alignTrials(behavior(behaviorIdx).trialEventTimes(:,[2,3,5,6,7,9]),...
         LFP, [-1000 2000]);
 
-    ssd_in = [behavior(behaviorIdx).stopSignalBeh.midSSDidx - 1,...
-        behavior(behaviorIdx).stopSignalBeh.midSSDidx,...
-        behavior(behaviorIdx).stopSignalBeh.midSSDidx + 1];
-    
-    signal_average{dataFileIdx} = neural_ttmSignalAverage(lfp_aligned,...
-        behavior(behaviorIdx).ttm.C,...
-        'units',fieldnames(lfp_aligned),...
-        'events',{'target','tone','stopSignal_artifical'},...
-        'ssd',ssd_in,...
-        'weighting',{'on'})
+
     
 end

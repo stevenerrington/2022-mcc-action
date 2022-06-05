@@ -13,7 +13,7 @@ colorMapping = [1,2];
     consensusCluster(inputSDF,sdfTimes,'-e',sdfEpoch,'-ei',colorMapping);
 normResp = scaleResp(inputSDF,sdfTimes,'max');
 
-nClusters_manual = myK; clusterNeurons = [];
+nClusters_manual = 5; clusterNeurons = [];
 for i = 1:nClusters_manual
     clusterNeurons{i} = find(sortIDs(:,nClusters_manual) == i );
 end

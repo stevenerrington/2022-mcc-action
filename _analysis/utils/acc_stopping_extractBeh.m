@@ -15,7 +15,7 @@ parfor dataFileIdx = 1:length(dataFiles_beh)
     % relevant task/session behavior.
     
     sessionName = {behFilename}; % Get the session name
-    [ttx, ~, trialEventTimes] =... % Index of trials and event timings
+    [ttx, ttx_history, trialEventTimes] =... % Index of trials and event timings
         beh_getTrials(import_data.events.stateFlags_,import_data.events.Infos_);
     [stopSignalBeh, ~] = beh_getStoppingInfo... % Stopping behavior
         (import_data.events.stateFlags_,import_data.events.Infos_,ttx);
@@ -25,6 +25,6 @@ parfor dataFileIdx = 1:length(dataFiles_beh)
     % After extracting the individual behavioral variable, we then collapse
     % it into one structure for the given session.
     behavior(dataFileIdx) = struct('sessionName',sessionName,'ttx',ttx,'trialEventTimes',trialEventTimes,...
-        'stopSignalBeh',stopSignalBeh,'ttm',ttm);
+        'stopSignalBeh',stopSignalBeh,'ttm',ttm,'ttx_history',ttx_history);
     
 end
