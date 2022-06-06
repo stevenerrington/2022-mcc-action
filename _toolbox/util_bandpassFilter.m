@@ -12,7 +12,7 @@ data.(band_name).lpc2 = band(1)/2;
 
 data.(band_name).filt_order = filt_order;
 
-do_power = false;
+do_power = true;
 do_oscil = true;
 
 varStrInd = find(cellfun(@ischar,varargin));

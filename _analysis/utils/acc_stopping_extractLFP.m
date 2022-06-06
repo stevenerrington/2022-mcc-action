@@ -35,6 +35,8 @@ parfor (dataFileIdx = 1:length(dataFiles_neural),4)
 
     % Save the LFP for each individual channel. This process is used to
     % stop file sizes becoming too large and crashing matlab.
-    util_saveLFP(lfp_aligned,neuralFilename,'C:\Users\Steven\Desktop\Projects\2022-acc-stopping\_data\lfp');
+    util_saveLFP(lfp_aligned,neuralFilename,'S:\Users\Current Lab Members\Steven Errington\analysis\2021-dajo-lfp');
     
 end
+
+
