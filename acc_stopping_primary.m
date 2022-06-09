@@ -35,7 +35,7 @@ acc_stopping_ssrtPCA
 
 %% Local field potentials
 params.filter.band = [0.7 170]; params.filter.label = 'broadband';
-acc_stopping_extractLFP(dirs,dataFiles_beh,dataFiles_neural,behavior,'filter',params.filter);
+% acc_stopping_extractLFP(dirs,dataFiles_beh,dataFiles_neural,behavior,'filter',params.filter);
 
 params.filter.band = [3 8]; params.filter.label = 'theta';
 acc_stopping_extractTheta

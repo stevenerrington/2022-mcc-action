@@ -6,8 +6,8 @@ function data = util_bandpassFilter( data_in, data_fs, t_lims, band, band_name, 
 band_name_time = [band_name '_time'];
 band_name_fs = [band_name '_fs'];
 
-data.(band_name).hpc = band(2);
-data.(band_name).lpc1 = band(1);
+data.(band_name).hpc = band(1);
+data.(band_name).lpc1 = band(2);
 data.(band_name).lpc2 = band(1)/2;
 
 data.(band_name).filt_order = filt_order;

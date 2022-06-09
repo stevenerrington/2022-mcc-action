@@ -1,5 +1,6 @@
 lfpDir = 'S:\Users\Current Lab Members\Steven Errington\analysis\2021-dajo-lfp\';
 outDir = 'C:\Users\Steven\Desktop\Projects\2022-acc-stopping\_data\lfp\sessionTheta';
+getColors
 
 %% Main script
 for dataFileIdx = 1:length(dataFiles_neural)
@@ -20,7 +21,7 @@ for dataFileIdx = 1:length(dataFiles_neural)
         data_in = load(fullfile(lfpDir,in_filename));
         
         thetaLFP{channel_i} = util_bandpassFilter(double(data_in.LFP.stopSignal_artifical),...
-            1000, 1, filter.band, filter.label, 2);
+            1000, 1, params.filter.band, params.filter.label, 2);
         
     end
     
@@ -67,6 +68,7 @@ end
 
 %%
 for dataFileIdx = 1:length(dataFiles_neural)
+    neuralFilename = dataFiles_neural{dataFileIdx};    
     behFilename = data_findBehFile(neuralFilename);
     behaviorIdx = find(strcmp(dataFiles_beh,behFilename(1:end-4)));
     ssrt = round(behavior(behaviorIdx).stopSignalBeh.ssrt.integrationWeighted);
@@ -111,7 +113,8 @@ epoch_labels = [repmat({'1_stopping'},length(dataFiles_neural)*3,1);...
     repmat({'2_ssrt'},length(dataFiles_neural)*3,1)];
      
 
-%% Figure
+%% Output ///////////////////////////////////////////////////////////
+% Figure
 clear test
 figure('Renderer', 'painters', 'Position', [100 100 300 300])
 test(1,1)= gramm('x',trial_labels,...
@@ -123,6 +126,76 @@ test.no_legend
 test.draw();
 
 % data = data*10e14;
-%% ANOVA table
+% ANOVA table
 outtable = table(monkey_labels,trial_labels,epoch_labels,data);
 writetable(outtable,fullfile('C:\Users\Steven\Desktop\Projects\2022-acc-stopping\_data\tables','jasp_thetapower_stopping.csv'),'WriteRowNames',true)
+
+
+%%
+for dataFileIdx = 1:length(dataFiles_neural)
+    behFilename = data_findBehFile(neuralFilename);
+    behaviorIdx = find(strcmp(dataFiles_beh,behFilename(1:end-4)));
+    ssrt = round(behavior(behaviorIdx).stopSignalBeh.ssrt.integrationWeighted);
+    
+    SSDlist = [behavior(behaviorIdx).stopSignalBeh.midSSDidx-1,...
+        behavior(behaviorIdx).stopSignalBeh.midSSDidx,...
+        behavior(behaviorIdx).stopSignalBeh.midSSDidx+1];
+    
+    for ssd_i = 1:3
+        ssd_idx = SSDlist(ssd_i);
+        ssd = behavior(behaviorIdx).stopSignalBeh.inh_SSD(ssd_i);
+        
+        thetaWindow_bl = []; thetaWindow_bl = 1000-ssd-200:1000-ssd;
+        thetaWindow_stop = []; thetaWindow_stop = 1000:1000+ssrt;
+        
+        tta_pwr_mean_ns_bl_ssd(dataFileIdx,ssd_i) = nanmean(nanmean(tta_pwr_ns{dataFileIdx,ssd_i}(:,thetaWindow_bl)));
+        tta_pwr_mean_c_bl_ssd(dataFileIdx,ssd_i) = nanmean(nanmean(tta_pwr_c{dataFileIdx,ssd_i}(:,thetaWindow_bl)));
+        
+        tta_pwr_mean_ns_stopping_ssd(dataFileIdx,ssd_i) = nanmean(nanmean(tta_pwr_ns{dataFileIdx,ssd_i}(:,thetaWindow_stop)));
+        tta_pwr_mean_c_stopping_ssd(dataFileIdx,ssd_i) = nanmean(nanmean(tta_pwr_c{dataFileIdx,ssd_i}(:,thetaWindow_stop)));
+        
+        
+        power_time_ns{ssd_i}(dataFileIdx,:) = nanmean(tta_pwr_ns{dataFileIdx,ssd_i}(:,:));
+        power_time_c{ssd_i}(dataFileIdx,:) = nanmean(tta_pwr_c{dataFileIdx,ssd_i}(:,:));
+
+        
+    end
+    
+end
+
+
+clear data monkey_labels trial_labels epoch_labels outtable
+
+
+data = [(tta_pwr_mean_ns_stopping_ssd(:,1)./tta_pwr_mean_ns_bl_ssd(:,1))*100-100;...
+    (tta_pwr_mean_ns_stopping_ssd(:,2)./tta_pwr_mean_ns_bl_ssd(:,2))*100-100;...
+    (tta_pwr_mean_ns_stopping_ssd(:,3)./tta_pwr_mean_ns_bl_ssd(:,3))*100-100;...
+    (tta_pwr_mean_c_stopping_ssd(:,1)./tta_pwr_mean_c_bl_ssd(:,1))*100-100;...
+    (tta_pwr_mean_c_stopping_ssd(:,2)./tta_pwr_mean_c_bl_ssd(:,2))*100-100;...
+    (tta_pwr_mean_c_stopping_ssd(:,3)./tta_pwr_mean_c_bl_ssd(:,3))*100-100];
+
+monkey_labels = repmat(dajo_datamap_curated.monkey,6,1);
+
+trial_labels = repmat([repmat({'1_SSD1'},length(dataFiles_neural),1);...
+    repmat({'2_SSD2'},length(dataFiles_neural),1);...
+    repmat({'3_SSD3'},length(dataFiles_neural),1)],2,1);
+
+epoch_labels = [repmat({'No-stop'},length(dataFiles_neural)*3,1);...
+    repmat({'Canceled'},length(dataFiles_neural)*3,1)];
+     
+outtable = table(monkey_labels,trial_labels,epoch_labels,data);
+writetable(outtable,fullfile('C:\Users\Steven\Desktop\Projects\2022-acc-stopping\_data\tables','jasp_thetapower_stopping_ssd.csv'),'WriteRowNames',true)
+
+
+
+figure; hold on
+plot(-999:2000,nanmean(power_time_ns{1}),'color',[colors.nostop 0.4])
+plot(-999:2000,nanmean(power_time_ns{2}),'color',[colors.nostop 0.7])
+plot(-999:2000,nanmean(power_time_ns{3}),'color',[colors.nostop 1])
+
+plot(-999:2000,nanmean(power_time_c{1}),'color',[colors.canceled 0.4])
+plot(-999:2000,nanmean(power_time_c{2}),'color',[colors.canceled 0.7])
+plot(-999:2000,nanmean(power_time_c{3}),'color',[colors.canceled 1])
+xlim([-100 600]); vline(0,'k-')
+
+

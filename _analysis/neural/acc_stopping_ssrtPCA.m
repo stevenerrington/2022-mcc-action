@@ -5,13 +5,13 @@ for electrode_i = 1:length(dataFiles_neural)
     
     for unit_i = 1:nUnits
         count = count + 1;
-        ns_ssd1(count,:) = signal_average_spk{electrode_i}.individual.stopSignal_artifical.signal_ssd{unit_i,1}{1, 1}(1,:);
-        ns_ssd2(count,:) = signal_average_spk{electrode_i}.individual.stopSignal_artifical.signal_ssd{unit_i,1}{1, 1}(2,:);
-        ns_ssd3(count,:) = signal_average_spk{electrode_i}.individual.stopSignal_artifical.signal_ssd{unit_i,1}{1, 1}(3,:);
+        ns_ssd1(count,:) = signal_average_spk{electrode_i}.individual.ssrt.signal_ssd{unit_i,1}{1, 1}(1,:);
+        ns_ssd2(count,:) = signal_average_spk{electrode_i}.individual.ssrt.signal_ssd{unit_i,1}{1, 1}(2,:);
+        ns_ssd3(count,:) = signal_average_spk{electrode_i}.individual.ssrt.signal_ssd{unit_i,1}{1, 1}(3,:);
         
-        c_ssd1(count,:) = signal_average_spk{electrode_i}.individual.stopSignal_artifical.signal_ssd{unit_i,1}{1, 2}(1,:);
-        c_ssd2(count,:) = signal_average_spk{electrode_i}.individual.stopSignal_artifical.signal_ssd{unit_i,1}{1, 2}(2,:);
-        c_ssd3(count,:) = signal_average_spk{electrode_i}.individual.stopSignal_artifical.signal_ssd{unit_i,1}{1, 2}(3,:);
+        c_ssd1(count,:) = signal_average_spk{electrode_i}.individual.ssrt.signal_ssd{unit_i,1}{1, 2}(1,:);
+        c_ssd2(count,:) = signal_average_spk{electrode_i}.individual.ssrt.signal_ssd{unit_i,1}{1, 2}(2,:);
+        c_ssd3(count,:) = signal_average_spk{electrode_i}.individual.ssrt.signal_ssd{unit_i,1}{1, 2}(3,:);
         
     end
     
@@ -29,7 +29,7 @@ getColors
 % Set PCA parameters
 samplingRate = 1/1000; % inherent to the data. Do not change
 numPCs = 8; % pick a number that will capture most of the variance
-timeStep = 50; % smaller values will yield high resolution at the expense of computation time, default will sample at 20ms
+timeStep = 10; % smaller values will yield high resolution at the expense of computation time, default will sample at 20ms
 withinConditionsOnly = false; % if true, will only analyze tanlging for times within the same condition
 
 clear PCA_mainInput PCA_mainOutput
