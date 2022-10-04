@@ -4,6 +4,7 @@ clear all; clc; % Clear workspace
 addpath('C:\Users\Steven\Desktop\Projects\2022-dajo-toolbox'); % DaJo-toolbox
 addpath('C:\Users\Steven\Desktop\Projects\2022-acc-stopping\_toolbox\clustering_schall') % Clustering toolbox
 dirs = data_setDir();
+getColors
 
 %% Curate data
 dajo_datamap = load_datamap(dirs);
@@ -22,6 +23,17 @@ behavior = acc_stopping_extractBeh(dirs,dataFiles_beh);
 % Look at RT adaptation following successful stopping
 acc_stopping_RTadaptation
 
+
+
+
+
+
+
+
+
+
+
+
 %% Spiking activity
 signal_average_spk = acc_stopping_extractSDF(dirs,dataFiles_beh,dataFiles_neural,behavior);
 
@@ -33,9 +45,3 @@ signal_collapse = neural_collapseSignalSession(signal_average_spk,...
 acc_stopping_ssrtClustering
 acc_stopping_ssrtPCA
 
-%% Local field potentials
-params.filter.band = [0.7 170]; params.filter.label = 'broadband';
-% acc_stopping_extractLFP(dirs,dataFiles_beh,dataFiles_neural,behavior,'filter',params.filter);
-
-params.filter.band = [3 8]; params.filter.label = 'theta';
-acc_stopping_extractTheta
