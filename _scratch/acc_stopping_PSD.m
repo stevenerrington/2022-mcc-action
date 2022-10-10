@@ -77,11 +77,3 @@ ylabel('Reverse Spikes'); vline(0,'r-')
 set(gca,'XDir','Reverse','view',[90 -90])
 
 %%
-
-% Load LFP data and align on events
-data.neurophys.lfp = load_lfpFile(dirs,neuralFilename);
-alignment_win = [-1000 2000]; alignment_zero = abs(alignment_win(1));
-neurophys.lfp = lfp_alignTrials(behavior(beh_index).trialEventTimes, data.neurophys.lfp, alignment_win);
-
-% Calculate PSD
-psd_analysis = lfp_getSessionPSD(neurophys.lfp, [-200 500]+alignment_zero);

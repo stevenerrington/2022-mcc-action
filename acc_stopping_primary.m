@@ -1,10 +1,13 @@
 
 %% Setup workspace
 clear all; clc; % Clear workspace
+
+% Add toolboxes
 addpath('C:\Users\Steven\Desktop\Projects\2022-dajo-toolbox'); % DaJo-toolbox
 addpath('C:\Users\Steven\Desktop\Projects\2022-acc-stopping\_toolbox\clustering_schall') % Clustering toolbox
-dirs = data_setDir();
-getColors
+% Setup directories and run global functions
+dirs = util_getDirs(); getColors
+ephysLog = importOnlineEphysLogMaster;
 
 %% Curate data
 dajo_datamap = load_datamap(dirs);
@@ -22,6 +25,15 @@ behavior = acc_stopping_extractBeh(dirs,dataFiles_beh);
 
 % Look at RT adaptation following successful stopping
 acc_stopping_RTadaptation
+
+
+
+
+
+%%
+
+acc_stopping_PSD
+
 
 
 

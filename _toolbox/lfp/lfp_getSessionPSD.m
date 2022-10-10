@@ -5,7 +5,7 @@ clear CSDanalysis psd_analysis
 fprintf(['Calculating CSD...\n'])
 
 % Get alignment and channel information
-alignName = 'reward';
+alignName = 'target';
 channelNames = fieldnames(alignedLFP);
 
 % For each channel in the penetration
@@ -31,9 +31,9 @@ CSDanalysis.(alignName).all =...
     SUITE_LAM(CSDanalysis.(alignName).CSDarray);
 
 % Output PSD information
-psd_analysis.psd = CSDanalysis.reward.all.PSD;
-psd_analysis.psd_freq = CSDanalysis.reward.all.PSD_F;
-psd_analysis.psd_norm = CSDanalysis.reward.all.PSD_NORM;
+psd_analysis.psd = CSDanalysis.(alignName).all.PSD;
+psd_analysis.psd_freq = CSDanalysis.(alignName).all.PSD_F;
+psd_analysis.psd_norm = CSDanalysis.(alignName).all.PSD_NORM;
 
 
 end
