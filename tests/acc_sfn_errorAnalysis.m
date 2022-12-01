@@ -54,6 +54,12 @@ parfor neuron_i = 1:size(acc_map_info,1)
     sdf_noncanc_all_tone(neuron_i,:) = nanmean(sdf_noncanc_tonex);
     sdf_nostop_all_tone(neuron_i,:) = nanmean(sdf_nostop_tonex);
 
+    % - Trial history
+    sdf_baseline_post_nc(neuron_i,:) = nanmean(data_in.SDF.target(behavior(behaviorIdx).ttx_history.NS_after_NC,:));
+    sdf_baseline_post_c(neuron_i,:) = nanmean(data_in.SDF.target(behavior(behaviorIdx).ttx_history.NS_after_C,:));
+    sdf_baseline_post_ns(neuron_i,:) = nanmean(data_in.SDF.target(behavior(behaviorIdx).ttx_history.NS_after_NS,:));
+    
+    
     % Save SSD specific activity, just incase.
     sdf_noncanc_ssd{neuron_i} = sdf_noncanc_saccade;
     sdf_nostop_ssd{neuron_i} = sdf_nostop_saccade;
@@ -116,6 +122,9 @@ normResp_target = scaleResp(inputSDF_target,sdfTimes,'max','-bl',blWindow);
 normResp_error = scaleResp(inputSDF_error,sdfTimes,'max','-bl',blWindow);
 normResp_tone = scaleResp(inputSDF_tone,sdfTimes,'max','-bl',blWindow);
 
+normResp_trlhistory = scaleResp({sdf_baseline_post_nc,sdf_baseline_post_c,sdf_baseline_post_ns},{sdfWindow, sdfWindow, sdfWindow},'max','-bl',blWindow);
+
+%% 
 nClusters_manual = 4; clusterNeurons = [];
 for cluster_i = 1:nClusters_manual
     clusterNeurons{cluster_i} = find(sortIDs(:,nClusters_manual) == cluster_i );
@@ -156,12 +165,66 @@ for epoch_i = 1:3
         subplot(nClusters_manual,3,subplot_pos); hold on
         plot(sdfTimes{1},nanmean(norm_in{1}(clusterNeurons{cluster_i},:),1), 'color', [colors.noncanc]);
         plot(sdfTimes{2},nanmean(norm_in{2}(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop]);
-        vline(0, 'k--'); xlim(xlim_list{epoch_i});ylim(ylim_list{cluster_i})
+        vline(0, 'k--'); xlim(xlim_list{epoch_i});%ylim(ylim_list{cluster_i})
         
         title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(clusterNeurons{cluster_i}))])
         
     end
 end
+
+
+%%
+figure('Renderer', 'painters', 'Position', [100 100 600 600]);hold on
+
+for cluster_i = 1:nClusters_manual
+    subplot(nClusters_manual,1,cluster_i); hold on
+    plot(sdfTimes{1},nanmean(normResp_trlhistory{1}(clusterNeurons{cluster_i},:),1), 'color', [colors.noncanc]);
+    plot(sdfTimes{2},nanmean(normResp_trlhistory{2}(clusterNeurons{cluster_i},:),1), 'color', [colors.canceled]);
+    plot(sdfTimes{2},nanmean(normResp_trlhistory{3}(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop]);
+    vline(0, 'k--'); xlim([-600 200]);
+    
+    title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(clusterNeurons{cluster_i}))])
+    
+end
+
+
+
+
+%%
+close all
+
+for cluster_i = 6
+    
+    cluster_units = []; cluster_units = clusterNeurons{cluster_i};
+    
+    for unit_i = 1:length(cluster_units)
+    figure('Renderer', 'painters', 'Position', [100 100 700 400]);hold on
+    plot(sdfTimes{1},nanmean(normResp_error{1}(cluster_units(unit_i),:),1), 'color', [colors.noncanc]);
+    plot(sdfTimes{1},nanmean(normResp_error{2}(cluster_units(unit_i),:),1), 'color', [colors.nostop]);
+    xlim([-250 1500]); vline(0,'k'); vline(600,'k'); vline(600+500,'k')
+    title(['Neuron: ' int2str(cluster_units(unit_i)) '; Cluster ' int2str(cluster_i) ' - n: ' int2str(length(clusterNeurons{cluster_i}))...
+        ', AP: ' int2str(acc_map_info.ap(cluster_neurons(unit_i))) '; ML: ' ...
+        int2str(acc_map_info.ml(cluster_neurons(unit_i))), ...
+        '; Area: ' acc_map_info.area{cluster_neurons(unit_i)} ])    
+    
+    end
+    
+
+    
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 %% Analyse: Spike width
 spk_width_cutoff = 250;

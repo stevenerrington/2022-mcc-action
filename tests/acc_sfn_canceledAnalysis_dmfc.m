@@ -1,69 +1,117 @@
+
+
+dajo_datamap_curated_DMFC = data_sessionCurate...
+    (dajo_datamap,...
+    'area', {'DMFC'}, 'monkey', {'dar','jou'}, 'signal', {'SPK'}, 'spacing', [50, 100, 150]);
+
+
+
+% Get session information and indices
+n_sessions = size(dajo_datamap_curated_DMFC,1);
+dmfc_map_info = [];
+
+dataFiles_beh = unique(dajo_datamap_curated_DMFC.sessionBeh);
+dataFiles_neural = unique(dajo_datamap_curated_DMFC.dataFilename);
+
+behavior = acc_stopping_extractBeh(dirs,dataFiles_beh);
+
+
+
+for session_i = 1:n_sessions
+    neuralFilename = dajo_datamap_curated_DMFC.dataFilename{session_i};
+    behFilename = data_findBehFile(neuralFilename);
+    beh_index = util_find_beh_index(behavior,behFilename);
+    logInfo(session_i,:) = util_getLogInfo(neuralFilename);
+    
+    fprintf(['Extracting data for ' neuralFilename ': session %i of %i     \n'],...
+        session_i, n_sessions);
+        
+    spk_data = load(fullfile(dirs.data,[neuralFilename '-spk.mat']));
+    
+    n_neurons= size(dajo_datamap_curated_DMFC.spkInfo(session_i,1).unitInfo,1);
+    map_info = table();
+    
+    for neuron_i = 1:n_neurons
+        site = dajo_datamap_curated_DMFC.spkInfo(session_i,1).unitInfo.site(neuron_i);
+        session = dajo_datamap_curated_DMFC.dataFilename(session_i);
+        monkey = dajo_datamap_curated_DMFC.monkey(session_i);
+        unit = dajo_datamap_curated_DMFC.spkInfo(session_i,1).unitInfo.unitDSP(neuron_i);
+        ap = logInfo.ap_stereo(session_i);
+        ml = logInfo.ml_stereo(session_i);
+        mua = dajo_datamap_curated_DMFC.spkInfo(session_i,1).unitInfo.flag_mua(neuron_i);
+        noise = dajo_datamap_curated_DMFC.spkInfo(session_i,1).unitInfo.flag_noise(neuron_i);
+
+        spk_width = util_getSpkWidth(spk_data,dajo_datamap_curated_DMFC.spkInfo(session_i,1).unitInfo.unitWAV{neuron_i});
+        
+        map_info(neuron_i,:) = table(session,monkey,unit,site,ap,ml,mua,noise,spk_width);
+    end
+    
+    dmfc_map_info = [dmfc_map_info; map_info];
+end
+
+% Clear up unknown areas and remove noise clusters
+dmfc_map_info(dmfc_map_info.noise == 1,:) = [];
+
+
+%%
+spk_width_cutoff = 250;
+
+% 
+% %%
+% dmfc_session_list = unique(dmfc_map_info.session);
+% 
+% parfor (session_i = 1:length(dmfc_session_list),4)
+% 
+%     % We get the (neural) filename of the record of interest
+%     neuralFilename = dmfc_session_list{session_i};
+%     fprintf('Extracting: %s ... [%i of %i]  \n',neuralFilename,length(dmfc_session_list))
+%     
+%     %... and find the corresponding behavior file index
+%     behFilename = data_findBehFile(neuralFilename);
+%     behaviorIdx = find(strcmp(dataFiles_beh,behFilename(1:end-4)));
+%     
+%     import_data = struct(); import_data = load_spkFile(dirs,neuralFilename);
+%     
+%     % Convolve spike times to get continous trace
+%     spk_data_sdf = [];spk_data_spikes = [];
+%     [spk_data_sdf, spk_data_spikes] =...
+%         spk_alignTrials(behavior(behaviorIdx).trialEventTimes(:,[3,5,6,7,9,10]),...
+%         import_data.time, [-1000 2000]);
+% 
+%     % Then split this data into individual channels
+%     neuron_labels = {};
+%     neuron_labels = dmfc_map_info.unit(strcmp(dmfc_map_info.session,neuralFilename));
+%     
+%     for neuron_i = 1:length(neuron_labels)
+%         SDF = []; Spikes = [];
+%         SDF = spk_data_sdf.(neuron_labels{neuron_i});
+%         Spikes = spk_data_spikes.(neuron_labels{neuron_i});
+%         
+%         save_filename_sdf = ...
+%             fullfile(dirs.root,'data','SDF',...
+%             [neuralFilename '_SDF_' neuron_labels{neuron_i} '.mat']);
+%         save_filename_spk = ...
+%             fullfile(dirs.root,'data','Spikes',...
+%             [neuralFilename '_Spikes_' neuron_labels{neuron_i} '.mat']);
+%         
+%         util_parsaveSDF(save_filename_sdf, SDF)
+%         util_parsaveSPK(save_filename_spk, Spikes)
+%     end
+%     
+% end
+% 
+
+%% Extract: Get latency-matched SDF for non-canceled trials
 timewins.sdf = [-1000:2000];
 timewins.zero = abs(timewins.sdf(1));
 timewins.ssrt_baseline = [-100:0];
 timewins.ssrt_comp = [-50:250];
 
-%% Admin: Get trial/session counts, etc...
-clear monkey nTrials
-dataFiles_beh_all = unique(dajo_datamap.session);
-
-clear monkey nTrials nElectrodes
-for beh_session_i = 1:size(dajo_datamap,1)
-    monkey{beh_session_i,1} = dajo_datamap.animalInfo(beh_session_i).monkey;
-    nTrials(beh_session_i,1) = dajo_datamap.behInfo(beh_session_i).nTrials;
-    nElectrodes(beh_session_i,1) = dajo_datamap.nElectrodes(beh_session_i);
-end
-
-% All sessions:
-sum(strcmp(monkey,'joule'))
-sum(strcmp(monkey,'darwin'))
-sum(nTrials)
-sum(nTrials(strcmp(monkey,'darwin')))
-sum(nTrials(strcmp(monkey,'joule')))
-
-% ACC sessions:
-sum(nElectrodes(strcmp(monkey,'darwin')))
-sum(nElectrodes(strcmp(monkey,'joule')))
-
-sum(strcmp(acc_map_info.monkey,'dar'))
-sum(strcmp(acc_map_info.monkey,'jou'))
-
-unique(dajo_datamap_curated.sessionBeh)
-unique(acc_map_info.session)
-
-%% Compare SSRT
-clear monkey nTrials
-for beh_session_i = 1:size(behavior,2)
-    ssrt(beh_session_i,1) = behavior(beh_session_i).stopSignalBeh.ssrt.integrationWeighted;
-    nTrials(beh_session_i,1) = size(behavior(beh_session_i).trialEventTimes,1);
+parfor neuron_i = 1:size(dmfc_map_info,1)
     
-    datamapIdx = find(strcmp(dajo_datamap_curated.sessionBeh,behavior(beh_session_i).sessionName(1:end-4)),1);
-    monkey{beh_session_i,1} = dajo_datamap_curated.monkey{datamapIdx};
-end
-
-sum(strcmp(monkey,'dar'))
-sum(strcmp(monkey,'jou'))
-sum(nTrials)
-sum(nTrials(strcmp(monkey,'dar')))
-sum(nTrials(strcmp(monkey,'jou')))
-
-[h, p, ~, stats] = ttest2(ssrt(strcmp(monkey,'dar')),ssrt(strcmp(monkey,'jou')))
-
-mean(ssrt(strcmp(monkey,'dar'))), sem(ssrt(strcmp(monkey,'dar')))
-mean(ssrt(strcmp(monkey,'jou'))), sem(ssrt(strcmp(monkey,'jou')))
-
-
-figure;hold on
-histogram(ssrt(strcmp(monkey,'jou')),10:10:180)
-histogram(ssrt(strcmp(monkey,'dar')),10:10:180)
-
-
-%% Extract: Get latency-matched SDF for non-canceled trials
-parfor neuron_i = 1:size(acc_map_info,1)
-    
-    neuralFilename = acc_map_info.session{neuron_i};
-    neuronLabel = acc_map_info.unit{neuron_i};
-    fprintf('Extracting: %s - %s ... [%i of %i]  \n',neuralFilename,neuronLabel,neuron_i,size(acc_map_info,1))
+    neuralFilename = dmfc_map_info.session{neuron_i};
+    neuronLabel = dmfc_map_info.unit{neuron_i};
+    fprintf('Extracting: %s - %s ... [%i of %i]  \n',neuralFilename,neuronLabel,neuron_i,size(dmfc_map_info,1))
     
     %... and find the corresponding behavior file index
     behFilename = data_findBehFile(neuralFilename);
@@ -144,11 +192,11 @@ parfor neuron_i = 1:size(acc_map_info,1)
 end
 
 %% Analyse: Compare activity for modulation post-stopping
-parfor neuron_i = 1:size(acc_map_info,1)
+parfor neuron_i = 1:size(dmfc_map_info,1)
     
-    neuralFilename = acc_map_info.session{neuron_i};
-    neuronLabel = acc_map_info.unit{neuron_i};
-    fprintf('Extracting: %s - %s ... [%i of %i]  \n',neuralFilename,neuronLabel,neuron_i,size(acc_map_info,1))
+    neuralFilename = dmfc_map_info.session{neuron_i};
+    neuronLabel = dmfc_map_info.unit{neuron_i};
+    fprintf('Extracting: %s - %s ... [%i of %i]  \n',neuralFilename,neuronLabel,neuron_i,size(dmfc_map_info,1))
     
     %... and find the corresponding behavior file index
     behFilename = data_findBehFile(neuralFilename);
@@ -180,6 +228,7 @@ end
 ssrt_neurons = find(ssrt_table.h == 1);
 
 
+
 %% Analyse: Clustering approach for stopping
 sdfWindow = timewins.sdf;
 blWindow = [-100:0];
@@ -190,7 +239,7 @@ inputSDF_ssrt = {sdf_canceled_all_ssrt(inputNeurons,:),sdf_nostop_all_ssrt(input
 inputSDF_tone = {sdf_canceled_all_tone(inputNeurons,:),sdf_nostop_all_tone(inputNeurons,:),sdf_noncanc_all_tone(inputNeurons,:)};
 
 sdfTimes = {sdfWindow, sdfWindow};
-sdfEpoch = {[-200:600],[-200:600]};
+sdfEpoch = {[200:600],[200:600]};
 
 colorMapping = [1,2];
 
@@ -214,7 +263,7 @@ normResp_trialhistory = scaleResp(...
     {sdf_post_canc_target(inputNeurons,:),sdf_post_nostop_target(inputNeurons,:),...
     sdf_post_noncanc_target(inputNeurons,:)},repmat({timewins.sdf},3,1),'max','-bl',blWindow);
 
-nClusters_manual = 4; clusterNeurons = [];
+nClusters_manual = 10; clusterNeurons = [];
 for cluster_i = 1:nClusters_manual
     clusterNeurons{cluster_i} = find(sortIDs(:,nClusters_manual) == cluster_i );
 end
@@ -263,112 +312,6 @@ for epoch_i = 1:4
     end
 end
 
-% Error --------------------
-figure('Renderer', 'painters', 'Position', [100 100 1200 200]);hold on
-
-for cluster_i = 1:nClusters_manual
-    subplot_pos = cluster_i;
-    subplot(1,nClusters_manual,subplot_pos); hold on
-    plot(sdfTimes{1},nanmean(normResp_error{1}(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop 1.0]);
-    plot(sdfTimes{2},nanmean(normResp_error{2}(clusterNeurons{cluster_i},:),1), 'color', [colors.noncanc 1.0]);
-    
-    vline(0, 'k--'); xlim([-500 500]);%ylim(ylim_list{cluster_i})
-    title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(clusterNeurons{cluster_i}))])
-    
-end
-
-% Value --------------------
-figure('Renderer', 'painters', 'Position', [100 100 1200 200]);hold on
-
-for cluster_i = 1:nClusters_manual
-    subplot_pos = cluster_i;
-    subplot(1,nClusters_manual,subplot_pos); hold on
-    plot(sdfTimes{1},nanmean(normResp_value{1}(clusterNeurons{cluster_i},:),1), 'color', [colors.canceled 0.5]);
-    plot(sdfTimes{2},nanmean(normResp_value{2}(clusterNeurons{cluster_i},:),1), 'color', [colors.canceled 1.0]);
-    plot(sdfTimes{1},nanmean(normResp_value{3}(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop 0.5]);
-    plot(sdfTimes{2},nanmean(normResp_value{4}(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop 1.0]);
-    
-    vline(0, 'k--'); xlim(xlim_list{epoch_i});%ylim(ylim_list{cluster_i})
-    title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(clusterNeurons{cluster_i}))])
-    
-end
-
-
-% Trial history --------------------
-figure('Renderer', 'painters', 'Position', [100 100 1200 200]);hold on
-
-for cluster_i = 1:nClusters_manual
-    subplot_pos = cluster_i;
-    subplot(1,nClusters_manual,subplot_pos); hold on
-    plot(sdfTimes{1},nanmean(normResp_trialhistory{1}(clusterNeurons{cluster_i},:),1), 'color', [colors.canceled 1.0]);
-    plot(sdfTimes{2},nanmean(normResp_trialhistory{2}(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop 1.0]);
-    plot(sdfTimes{1},nanmean(normResp_trialhistory{3}(clusterNeurons{cluster_i},:),1), 'color', [colors.noncanc 1.0]);
-    
-    vline(0, 'k--'); xlim([-500 1000]);%ylim(ylim_list{cluster_i})
-    title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(clusterNeurons{cluster_i}))])
-    
-end
-
-%% Analyse: Spike width
-spk_width_cutoff = 250;
-figure('Renderer', 'painters', 'Position', [100 100 200 800]);hold on
-
-for cluster_i = 1:nClusters_manual
-    subplot(nClusters_manual,1,cluster_i)
-    
-    cluster_spkwidth(cluster_i,1) = sum(abs(acc_map_info.spk_width(inputNeurons(clusterNeurons{cluster_i}))) >= spk_width_cutoff);
-    cluster_spkwidth(cluster_i,2) = sum(abs(acc_map_info.spk_width(inputNeurons(clusterNeurons{cluster_i}))) < spk_width_cutoff);
-    
-    
-    pie([cluster_spkwidth(cluster_i,1),cluster_spkwidth(cluster_i,2)]);
-end
-
-sum(abs(acc_map_info.spk_width)>= spk_width_cutoff)
-sum(abs(acc_map_info.spk_width) < spk_width_cutoff)
-
-%% Analyse: dorsal and ventral MCC
-
-ml_axis_range = [-8:1:8]; ap_axis_range = [20:40]; depth_range = [-3000:50:3000];
-ml_axis_zero = abs(min(ml_axis_range)); ap_axis_zero = abs(min(ap_axis_range)); depth_zero = abs(min(depth_range));
-
-figure('Renderer', 'painters', 'Position', [100 100 1400 300]);hold on
-for cluster_i = 1:nClusters_manual
-    cluster_neurons = []; cluster_neurons = inputNeurons(clusterNeurons{cluster_i});
-    
-    clear sample_coords
-    sample_array = zeros(length(ml_axis_range),length(ap_axis_range), length(depth_range));
-    
-    for neuron_i = 1:length(cluster_neurons)
-        ap_sample_ref = find(ap_axis_range == acc_map_info.ap(cluster_neurons(neuron_i)));
-        ml_sample_ref = find(ml_axis_range == acc_map_info.ml(cluster_neurons(neuron_i)));
-        depth_sample_ref = find(depth_range == acc_map_info.depth(cluster_neurons(neuron_i)));
-        
-        sample_array(ap_sample_ref,ml_sample_ref,depth_sample_ref) =...
-            sample_array(ap_sample_ref,ml_sample_ref,depth_sample_ref) + 1;
-        
-        sample_coords(neuron_i,:) = ...
-            [acc_map_info.ap(cluster_neurons(neuron_i)),...
-            acc_map_info.ml(cluster_neurons(neuron_i)),...
-            acc_map_info.depth(cluster_neurons(neuron_i))];
-    end
-    
-    subplot(1,4,cluster_i); hold on
-    scatter(sample_coords(:,1),sample_coords(:,3),'filled')
-%     scatter3(sample_coords(:,1),sample_coords(:,2),sample_coords(:,3),'filled')
-%     view(71,2.5); ylim([-8 8]); xlim([25 35]); zlim([-3000 3000])
-    xlim([25 35]); ylim([-3000 3000])
-    set(gca,'ZDir','reverse')
-    xl = xlim; yl = ylim;
-%     patch([[1 1]*xl(1) [1 1]*xl(2)], [yl fliplr(yl)], [1 1 1 1]*0, 'k', 'FaceAlpha',0.1);
-    
-    grid on
-end
-
-cluster_i = 4;
-[sum(acc_map_info.depth <= 0) - sum(acc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) <= 0),...
-sum(acc_map_info.depth > 0) - sum(acc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) > 0);...
-sum(acc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) <= 0),...
-sum(acc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) > 0)]
 
 
 %% Analyse: activity as a function of SSD
@@ -380,7 +323,7 @@ for cluster_i = 1:nClusters_manual
     for neuron_list_i = 1:length(neuron_list)
         neuron_i = neuron_list(neuron_list_i);
         count = count + 1;
-        behFilename = data_findBehFile(acc_map_info.session{neuron_list(neuron_list_i)});
+        behFilename = data_findBehFile(dmfc_map_info.session{neuron_list(neuron_list_i)});
         behaviorIdx = find(strcmp(dataFiles_beh,behFilename(1:end-4)));
         ssrt = round(behavior(behaviorIdx).stopSignalBeh.ssrt.integrationWeighted);
         
@@ -468,8 +411,8 @@ testFigure.draw();
 
 figure('Renderer', 'painters', 'Position', [100 100 1000 200]);hold on
 
-for cluster_i = 1:4
-    subplot(1,4,cluster_i); hold on
+for cluster_i = 1:nClusters_manual
+    subplot(1,nClusters_manual,cluster_i); hold on
     plot(-1000:2000,nanmean(ssd_sdf_all_canc{cluster_i,1}),'color',[colors.canceled 0.3])
     plot(-1000:2000,nanmean(ssd_sdf_all_canc{cluster_i,2}),'color',[colors.canceled 0.6])
     plot(-1000:2000,nanmean(ssd_sdf_all_canc{cluster_i,3}),'color',[colors.canceled 1.0])
@@ -484,78 +427,5 @@ end
 
 
 
-%% PCA Analysis: Stop-Signal
-for neuron_i = 1:size(acc_map_info,1)
-    
-    neuralFilename = acc_map_info.session{neuron_i};
-    neuronLabel = acc_map_info.unit{neuron_i};    
-    %... and find the corresponding behavior file index
-    behFilename = data_findBehFile(neuralFilename);
-    behaviorIdx = find(strcmp(dataFiles_beh,behFilename(1:end-4)));
-    mid_ssd_idx = behavior(behaviorIdx).stopSignalBeh.midSSDidx;
- 
-    c_ssd1(neuron_i,:) = sdf_canceled_ssd{neuron_i}(mid_ssd_idx-1,:);
-    c_ssd2(neuron_i,:) = sdf_canceled_ssd{neuron_i}(mid_ssd_idx,:);
-    c_ssd3(neuron_i,:) = sdf_canceled_ssd{neuron_i}(mid_ssd_idx+1,:);
-    
-    ns_ssd1(neuron_i,:) = sdf_nostop_ssd{neuron_i}(mid_ssd_idx-1,:);
-    ns_ssd2(neuron_i,:) = sdf_nostop_ssd{neuron_i}(mid_ssd_idx,:);
-    ns_ssd3(neuron_i,:) = sdf_nostop_ssd{neuron_i}(mid_ssd_idx+1,:);   
-end
 
-% Set data parameters & windows
-ephysWin = [-1000 2000]; winZero = abs(ephysWin(1));
-plotWin = [-250:500]; 
-analyseTime = [-100:200];
-getColors
 
-% Set PCA parameters
-samplingRate = 1/1000; % inherent to the data. Do not change
-numPCs = 8; % pick a number that will capture most of the variance
-timeStep = 10; % smaller values will yield high resolution at the expense of computation time, default will sample at 20ms
-withinConditionsOnly = false; % if true, will only analyze tanlging for times within the same condition
-
-clear PCA_mainInput PCA_mainOutput
-% Setup data for PCA analysis
-PCA_mainInput(1).A = c_ssd1';
-PCA_mainInput(1).times = plotWin';
-PCA_mainInput(1).analyzeTimes = analyseTime';
-PCA_mainInput(1).condition = 'SSD1 - canceled';
-PCA_mainInput(1).color = [colors.canceled 0.25];
-
-PCA_mainInput(2).A = c_ssd2';
-PCA_mainInput(2).times = plotWin';
-PCA_mainInput(2).analyzeTimes = analyseTime';
-PCA_mainInput(2).condition = 'SSD2 - canceled';
-PCA_mainInput(2).color = [colors.canceled 0.50];
-
-PCA_mainInput(3).A = c_ssd3';
-PCA_mainInput(3).times = plotWin';
-PCA_mainInput(3).analyzeTimes = analyseTime';
-PCA_mainInput(3).condition = 'SSD3 - canceled';
-PCA_mainInput(3).color = [colors.canceled 1.00];
-
-PCA_mainInput(4).A = ns_ssd1';
-PCA_mainInput(4).times = plotWin';
-PCA_mainInput(4).analyzeTimes = analyseTime';
-PCA_mainInput(4).condition = 'SSD1 - canceled';
-PCA_mainInput(4).color = [colors.nostop 0.25];
-
-PCA_mainInput(5).A = ns_ssd2';
-PCA_mainInput(5).times = plotWin';
-PCA_mainInput(5).analyzeTimes = analyseTime';
-PCA_mainInput(5).condition = 'SSD2 - canceled';
-PCA_mainInput(5).color = [colors.nostop 0.50];
-
-PCA_mainInput(6).A = ns_ssd3';
-PCA_mainInput(6).times = plotWin';
-PCA_mainInput(6).analyzeTimes = analyseTime';
-PCA_mainInput(6).condition = 'SSD3 - canceled';
-PCA_mainInput(6).color = [colors.nostop 1.00];
- 
-
-% Run PCA analysis
-[~, PCA_mainOutput] = tangleAnalysis(PCA_mainInput, samplingRate,'numPCs',numPCs,'softenNorm',5 ,'timeStep',timeStep,'withinConditionsOnly',withinConditionsOnly); % soft normalize neural data
-pca_figure(PCA_mainInput,PCA_mainOutput)
-
-%% 
