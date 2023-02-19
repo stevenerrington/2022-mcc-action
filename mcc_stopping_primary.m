@@ -8,15 +8,16 @@ Dependencies:
 
 %% Setup workspace
 clear all; clc; % Clear workspace
-dirs = util_getDirs(); getColors
-% Add toolboxes
-addpath(dirs.toolbox); % DaJo-toolbox
+dirs = get_dirs_mcc('home'); 
+
+getColors_mcc
+
 % Setup directories and run global functions
 ephysLog = importOnlineEphysLogMaster;
 
 %% Curate data
 % Load in the main pre-processed data map
-dajo_datamap = load_datamap(dirs);
+dajo_datamap = load_datamap(fullfile(dirs.root,'data'));
 
 % Curate the datamap to only have sessions of interest
 %   Criteria: ACC sessions, in Da and Jo, that contain spikes, across all
@@ -33,7 +34,7 @@ dataFiles_neural = unique(dajo_datamap_curated.dataFilename);
 % Extract behavior across all relevant sessions (as identified in the
 % curated dajo_datamap).
 %   Behavior includes: stop behavior, RTs, value behavior.
-behavior = acc_stopping_extractBeh(dirs,dataFiles_beh);
+behavior = mcc_stopping_extractBeh(dirs,dataFiles_beh);
 
 % Look at RT adaptation following successful stopping
 %   We approach this in two ways:
