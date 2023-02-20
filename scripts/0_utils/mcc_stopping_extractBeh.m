@@ -21,10 +21,16 @@ parfor dataFileIdx = 1:length(dataFiles_beh)
         (import_data.events.stateFlags_,import_data.events.Infos_,ttx);
     trialEventTimes.ssrt = trialEventTimes.stopSignal_artifical + stopSignalBeh.ssrt.integrationWeighted;
     [ttm] = beh_getMatchedTrials(stopSignalBeh,ttx, trialEventTimes); % Trial matching indices
-        
+    
     % After extracting the individual behavioral variable, we then collapse
     % it into one structure for the given session.
     behavior(dataFileIdx) = struct('sessionName',sessionName,'ttx',ttx,'trialEventTimes',trialEventTimes,...
         'stopSignalBeh',stopSignalBeh,'ttm',ttm,'ttx_history',ttx_history);
     
 end
+
+behavior = struct2table(behavior);
+
+
+end
+

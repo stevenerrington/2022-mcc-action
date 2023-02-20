@@ -51,11 +51,11 @@ inh_function_figure(1,1).facet_grid([],stopBeh_plot.monkey);
 inh_function_figure(2,1).facet_grid([],monkey_cumul);
 inh_function_figure.draw();
 
-% Once we're done with a page, save it and close it.
-filename = fullfile(dirs.figures,'sfn_inh_function.pdf');
-set(inh_function_fig,'PaperSize',[20 10]); %set the paper size to what you want
-print(inh_function_fig,filename,'-dpdf') % then print it
-close(inh_function_fig)
+% % Once we're done with a page, save it and close it.
+% filename = fullfile(dirs.figures,'sfn_inh_function.pdf');
+% set(inh_function_fig,'PaperSize',[20 10]); %set the paper size to what you want
+% print(inh_function_fig,filename,'-dpdf') % then print it
+% close(inh_function_fig)
 
 %% Figure: RT distributin
 
@@ -76,12 +76,12 @@ for session_i = 1:length(dataFiles_beh)
     xlim([100 700]); ylim([0 1])
 end
 
-
-% Once we're done with a page, save it and close it.
-filename = fullfile(dirs.figures,'sfn_rt_dist.pdf');
-set(rt_dist_fig,'PaperSize',[20 10]); %set the paper size to what you want
-print(rt_dist_fig,filename,'-dpdf') % then print it
-close(rt_dist_fig)
+% 
+% % Once we're done with a page, save it and close it.
+% filename = fullfile(dirs.figures,'sfn_rt_dist.pdf');
+% set(rt_dist_fig,'PaperSize',[20 10]); %set the paper size to what you want
+% print(rt_dist_fig,filename,'-dpdf') % then print it
+% close(rt_dist_fig)
 
 %% Figure: SSRT histogram
 
@@ -92,10 +92,10 @@ histogram(stopBeh_plot.ssrt_session(strcmp(stopBeh_plot.monkey, 'dar')),60:5:180
 hold on
 histogram(stopBeh_plot.ssrt_session(strcmp(stopBeh_plot.monkey, 'jou')),60:5:180,'LineStyle','None')
 xlim([60 180]); ylim([0 10])
-
-% Once we're done with a page, save it and close it.
-filename = fullfile(dirs.figures,'sfn_ssrt_dist.pdf');
-set(ssrt_dist_fig,'PaperSize',[20 10]); %set the paper size to what you want
-print(ssrt_dist_fig,filename,'-dpdf') % then print it
-close(ssrt_dist_fig)
+% 
+% % Once we're done with a page, save it and close it.
+% filename = fullfile(dirs.figures,'sfn_ssrt_dist.pdf');
+% set(ssrt_dist_fig,'PaperSize',[20 10]); %set the paper size to what you want
+% print(ssrt_dist_fig,filename,'-dpdf') % then print it
+% close(ssrt_dist_fig)
 

@@ -70,7 +70,7 @@ parfor neuron_i = 1:size(acc_map_info,1)
     behaviorIdx = find(strcmp(dataFiles_beh,behFilename(1:end-4)));
     
     % Load in pre-processed spike data
-    data_in = load(fullfile(dirs.root,'data','SDF',...
+    data_in = load(fullfile(dirs.data,'SDF',...
         [neuralFilename '_SDF_' neuronLabel '.mat']));
     
     sdf_canceled_targetx = []; sdf_nostop_targetx = [];
