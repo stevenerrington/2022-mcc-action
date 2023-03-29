@@ -1,5 +1,6 @@
-% Code: Plot stopping behavior slowing
-% 2022-10-16 | S P Errington
+function fig1_behavior_summary(dajo_datamap_curated, behavior, dataFiles_beh)
+
+getColors_mcc
 
 %% Analysis: Extract stopping behavior across sessions.
 % - For each behavioral session
@@ -17,21 +18,21 @@ for session_i = 1:length(dataFiles_beh)
     sessionBeh = dajo_datamap_curated.sessionBeh(beh_idx);
     monkey = dajo_datamap_curated.monkey(beh_idx);
     
-    rt_array = behavior(session_i).trialEventTimes.saccade-behavior(session_i).trialEventTimes.target;
+    rt_array = behavior.trialEventTimes{session_i}.saccade-behavior.trialEventTimes{session_i}.target;
     rt_array(rt_array < 100 | rt_array > 1000) = NaN;
     
-    inh_function_session{session_i,1} = behavior(session_i).stopSignalBeh.inh_weibull.y;
+    inh_function_session{session_i,1} = behavior.stopSignalBeh(session_i).inh_weibull.y;
     
-    ssrt_session = behavior(session_i).stopSignalBeh.ssrt.integrationWeighted;
+    ssrt_session = behavior.stopSignalBeh(session_i).ssrt.integrationWeighted;
     
     stopBeh_plot(session_i,:) = table(sessionBeh,monkey,ssrt_session);
     
-    RTdist.nostop{session_i,1} = cumulDist(rt_array(behavior(session_i).ttx.nostop.all.all));
-    RTdist.noncanc{session_i,1} = cumulDist(rt_array(behavior(session_i).ttx.noncanceled.all.all));
+    RTdist.nostop{session_i,1} = cumulDist(rt_array(behavior.ttx(session_i).nostop.all.all));
+    RTdist.noncanc{session_i,1} = cumulDist(rt_array(behavior.ttx(session_i).noncanceled.all.all));
     
-    ssd_cumul = [ssd_cumul; behavior(session_i).stopSignalBeh.inh_SSD];
-    pnc_cumul = [pnc_cumul; behavior(session_i).stopSignalBeh.inh_pnc'];
-    monkey_cumul = [monkey_cumul; repmat(monkey,length(behavior(session_i).stopSignalBeh.inh_SSD),1)];
+    ssd_cumul = [ssd_cumul; behavior.stopSignalBeh(session_i).inh_SSD];
+    pnc_cumul = [pnc_cumul; behavior.stopSignalBeh(session_i).inh_pnc'];
+    monkey_cumul = [monkey_cumul; repmat(monkey,length(behavior.stopSignalBeh(session_i).inh_SSD),1)];
     
     rt_nostop_quantile{session_i,1} = quantile(RTdist.nostop{session_i,1}(:,1), [0.1:0.1:0.9]);
     rt_noncanc_quantile{session_i,1} = quantile(RTdist.noncanc{session_i,1}(:,1), [0.1:0.1:0.9]);
@@ -71,5 +72,5 @@ behavior_figure(1,3).axe_property('YLim',[0 15]);
 
 behavior_figure.draw();
 
-
+end
 

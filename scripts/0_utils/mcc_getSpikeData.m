@@ -4,7 +4,7 @@ parfor (session_i = 1:length(acc_session_list),4)
 
     % We get the (neural) filename of the record of interest
     neuralFilename = acc_session_list{session_i};
-    fprintf('Extracting: %s ... [%i of %i]  \n',neuralFilename,length(acc_session_list))
+    fprintf('Extracting: %s ... [%i of %i]  \n ',neuralFilename,session_i,length(acc_session_list))
     
     %... and find the corresponding behavior file index
     behFilename = data_findBehFile(neuralFilename);
@@ -15,7 +15,7 @@ parfor (session_i = 1:length(acc_session_list),4)
     % Convolve spike times to get continous trace
     spk_data_sdf = [];spk_data_spikes = [];
     [spk_data_sdf, spk_data_spikes] =...
-        spk_alignTrials(behavior(behaviorIdx).trialEventTimes(:,[3,5,6,7,9,10]),...
+        spk_alignTrials(behavior.trialEventTimes{behaviorIdx}(:,[3,5,6,9]),...
         import_data.time, [-1000 2000]);
 
     % Then split this data into individual channels
