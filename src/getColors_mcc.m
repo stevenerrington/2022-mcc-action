@@ -8,3 +8,5 @@ colors.xena = [117 154 171]./255;
 colors.misc.red2 = [191 6 3]./255;
 colors.misc.orange2 = [240, 162, 2]./255;
 colors.misc.green2 = [40, 124, 3]./255;
+
+colors.error_gradient = customcolormap([0 0.5 1], [colors.noncanc; 1 1 1; colors.nostop]);   %

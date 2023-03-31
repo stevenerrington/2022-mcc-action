@@ -1,10 +1,10 @@
-acc_session_list = unique(acc_map_info.session);
+mcc_session_list = unique(mcc_map_info.session);
 
-parfor (session_i = 1:length(acc_session_list),4)
+parfor (session_i = 1:length(mcc_session_list),4)
 
     % We get the (neural) filename of the record of interest
-    neuralFilename = acc_session_list{session_i};
-    fprintf('Extracting: %s ... [%i of %i]  \n ',neuralFilename,session_i,length(acc_session_list))
+    neuralFilename = mcc_session_list{session_i};
+    fprintf('Extracting: %s ... [%i of %i]  \n ',neuralFilename,session_i,length(mcc_session_list))
     
     %... and find the corresponding behavior file index
     behFilename = data_findBehFile(neuralFilename);
@@ -20,7 +20,7 @@ parfor (session_i = 1:length(acc_session_list),4)
 
     % Then split this data into individual channels
     neuron_labels = {};
-    neuron_labels = acc_map_info.unit(strcmp(acc_map_info.session,neuralFilename));
+    neuron_labels = mcc_map_info.unit(strcmp(mcc_map_info.session,neuralFilename));
     
     for neuron_i = 1:length(neuron_labels)
         SDF = []; Spikes = [];
