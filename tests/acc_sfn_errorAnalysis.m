@@ -89,6 +89,8 @@ for neuron_i = 1:size(mcc_map_info,1)
 
 end
 
+
+%% Figure: Plot normalized activity as a heatmap
 [~,sort_activity_idx] = sort(nanmean(norm_sdf.saccade.diff(:,timewins.error_comp+timewins.zero),2));
 
 figure('Renderer', 'painters', 'Position', [100 100 300 400]);
@@ -122,35 +124,133 @@ neuron_idx.error.go_fac = find(error_table.h == 1 & error_table.nc_dir == 0);
 
 
 %% Extract: Produce summary sheet figure for mean SDF
+% 
+% n_plot_x = 4; n_plot_y = 3; n_plot_sheet = n_plot_x*n_plot_y;
+% n_batches = round(size(neuron_idx.error.nc_fac,1)/n_plot_sheet,-1)+1;
+% 
+% list_i = 0;
+% 
+% for page_i = 1:n_batches
+%     fig_out = figure('Renderer', 'painters', 'Position', [100 100 1200 800]);
+%     
+%     for plot_i = 1:n_plot_sheet
+%         list_i = list_i+1;
+%         neuron_i = neuron_idx.error.nc_fac(list_i);
+%         try
+%             subplot(n_plot_x, n_plot_y, plot_i); hold on
+%             plot(timewins.sdf, sdf_noncanc_all_saccade(neuron_i,:),'color',colors.noncanc)
+%             plot(timewins.sdf, sdf_nostop_all_saccade(neuron_i,:),'color',colors.nostop)
+%             xlim([-200 800]); vline(0,'k--'); %, hline([-3 3],'r:'); hline([-6 6],'r:'); 
+%             xlabel('Time from Target (ms)')
+%             ylabel('Firing rate (z-score)')
+%             title([mcc_map_info.session{neuron_i} ': ' mcc_map_info.unit{neuron_i}])
+%             
+%             
+%         catch
+%             continue
+%         end
+%         
+%     end
+%     
+%     filename = fullfile(dirs.root,'results','sdf_overview_figs',['errorsdf_saccade_overview_pg' int2str(page_i) '.pdf']);
+%     set(fig_out,'PaperSize',[20 10]); %set the paper size to what you want
+%     print(fig_out,filename,'-dpdf') % then print it
+%     close(fig_out)
+% end
 
+
+%% Analyse: Clustering approach for errors
+sdfWindow = timewins.sdf;
+inputNeurons = []; inputNeurons = neuron_idx.error.nc_fac;
+inputSDF_target = {norm_sdf.target.noncanc(inputNeurons,:),norm_sdf.target.nostop(inputNeurons,:)};
+inputSDF_error = {norm_sdf.saccade.noncanc(inputNeurons,:),norm_sdf.saccade.nostop(inputNeurons,:)};
+inputSDF_tone = {norm_sdf.tone.noncanc(inputNeurons,:),norm_sdf.tone.nostop(inputNeurons,:)};
+
+sdfTimes = {sdfWindow, sdfWindow};
+sdfEpoch = {[0:500],[0:500]};
+
+colorMapping = [1,2];
+
+[sortIDs,idxDist, raw, respSumStruct, rawLink,myK] =...
+    consensusCluster(inputSDF_error,sdfTimes,'-e',sdfEpoch,'-ei',colorMapping,'-er',sdfEpoch,...
+    '-mn',round(0.1*length(inputNeurons)),'-c',0.75);
+
+nClusters_manual = myK; clusterNeurons = [];
+for cluster_i = 1:nClusters_manual
+    clusterNeurons{cluster_i} = inputNeurons(sortIDs(:,nClusters_manual) == cluster_i );
+end
+
+% Figure: Dendrogram %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure('Renderer', 'painters', 'Position', [100 100 500 400]);
+
+subplot(1,5,5)
+[h,~,outPerm] = dendrogram(rawLink,0,'Orientation','right');
+set(gca,'YDir','Reverse');
+klDendroClustChange(h,rawLink,sortIDs(:,nClusters_manual))
+set(gca,'YTick',[]); xlabel('Similarity')
+
+subplot(1,5,[1:4]);
+for ir = 1:size(raw,1)
+    for ic = (ir+1):size(raw,2)
+        raw(ic,ir) = raw(ir,ic);
+    end
+end
+imagesc(raw(outPerm,outPerm));
+colormap(flipud(gray));
+xlabel('Unit Number'); set(gca,'YAxisLocation','Left');
+
+
+% Generate a quick sdf of each cluster
+
+for cluster_i = 1:nClusters_manual
+    cluster_shift = 4*(cluster_i-1);
+    figure('Renderer', 'painters', 'Position', [100 100 800 500]);hold on
+
+    subplot(1,4,1); hold on
+    plot(sdfTimes{1},nanmean(norm_sdf.target.noncanc(clusterNeurons{cluster_i},:),1), 'color', [colors.noncanc]);
+    plot(sdfTimes{2},nanmean(norm_sdf.target.nostop(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop]);
+    vline([0], 'k--'); xlim([-500 250])
+
+    subplot(1,4,[2 3 4]); hold on    
+    plot(sdfTimes{1},nanmean(norm_sdf.saccade.noncanc(clusterNeurons{cluster_i},:),1), 'color', [colors.noncanc]);
+    plot(sdfTimes{2},nanmean(norm_sdf.saccade.nostop(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop]);
+    vline([0 500 1000], 'k--'); xlim([-200 1500])
+
+    title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(clusterNeurons{cluster_i}))])
+    
+end
+
+
+%% Extract: Produce summary sheet figure for mean SDF
+cluster_i = 4;
 n_plot_x = 4; n_plot_y = 3; n_plot_sheet = n_plot_x*n_plot_y;
-n_batches = round(size(neuron_idx.error.nc_fac,1)/n_plot_sheet,-1)+1;
+n_batches = round(length(clusterNeurons{cluster_i})/n_plot_sheet,-1)+1;
 
 list_i = 0;
 
 for page_i = 1:n_batches
     fig_out = figure('Renderer', 'painters', 'Position', [100 100 1200 800]);
-    
+
     for plot_i = 1:n_plot_sheet
         list_i = list_i+1;
-        neuron_i = neuron_idx.error.nc_fac(list_i);
+        neuron_i = clusterNeurons{cluster_i}(list_i);
         try
             subplot(n_plot_x, n_plot_y, plot_i); hold on
             plot(timewins.sdf, sdf_noncanc_all_saccade(neuron_i,:),'color',colors.noncanc)
             plot(timewins.sdf, sdf_nostop_all_saccade(neuron_i,:),'color',colors.nostop)
-            xlim([-200 800]); vline(0,'k--'); %, hline([-3 3],'r:'); hline([-6 6],'r:'); 
+            xlim([-200 800]); vline(0,'k--'); %, hline([-3 3],'r:'); hline([-6 6],'r:');
             xlabel('Time from Target (ms)')
             ylabel('Firing rate (z-score)')
             title([mcc_map_info.session{neuron_i} ': ' mcc_map_info.unit{neuron_i}])
-            
-            
+
+
         catch
             continue
         end
-        
+
     end
-    
-    filename = fullfile(dirs.root,'results','sdf_overview_figs',['errorsdf_saccade_overview_pg' int2str(page_i) '.pdf']);
+
+    filename = fullfile(dirs.root,'results','sdf_overview_figs',['cluster4_errorsdf_saccade_overview_pg' int2str(page_i) '.pdf']);
     set(fig_out,'PaperSize',[20 10]); %set the paper size to what you want
     print(fig_out,filename,'-dpdf') % then print it
     close(fig_out)
@@ -165,69 +265,28 @@ end
 
 
 
-%% Figure: Plot population of significant units
-
-clear error_pop_fig1 input_neurons
-
-input_neurons_a = neuron_idx.error.nc_fac;
-input_neurons_b = neuron_idx.error.go_fac;
-
-% Type A (Error Facilitated)
-error_pop_fig1(1,1)= gramm('x',-1000:2000,...
-    'y',[num2cell(norm_sdf.target.nostop(input_neurons_a,:),2);num2cell(norm_sdf.target.noncanc(input_neurons_a,:),2)],...
-    'color',[repmat({'1_nostop'},length(input_neurons_a),1);repmat({'2_noncanc'},length(input_neurons_a),1)]);
-
-error_pop_fig1(1,2)= gramm('x',-1000:2000,...
-    'y',[num2cell(norm_sdf.saccade.nostop(input_neurons_a,:),2);num2cell(norm_sdf.saccade.noncanc(input_neurons_a,:),2)],...
-    'color',[repmat({'1_nostop'},length(input_neurons_a),1);repmat({'2_noncanc'},length(input_neurons_a),1)]);
-
-% Type B (Error Suppressed)
-error_pop_fig1(2,1)= gramm('x',-1000:2000,...
-    'y',[num2cell(norm_sdf.target.nostop(input_neurons_b,:),2);num2cell(norm_sdf.target.noncanc(input_neurons_b,:),2)],...
-    'color',[repmat({'1_nostop'},length(input_neurons_b),1);repmat({'2_noncanc'},length(input_neurons_b),1)]);
-
-error_pop_fig1(2,2)= gramm('x',-1000:2000,...
-    'y',[num2cell(norm_sdf.saccade.nostop(input_neurons_b,:),2);num2cell(norm_sdf.saccade.noncanc(input_neurons_b,:),2)],...
-    'color',[repmat({'1_nostop'},length(input_neurons_b),1);repmat({'2_noncanc'},length(input_neurons_b),1)]);
 
 
-for epoch_i = 1:2
-    for class_i = 1:2
-        error_pop_fig1(class_i,epoch_i).stat_summary();
-        error_pop_fig1(class_i,epoch_i).set_color_options('map',[colors.nostop;colors.noncanc]);
-        error_pop_fig1(class_i,epoch_i).no_legend();
-    end
-end
-
-error_pop_fig1(1,1).axe_property('XLim',[-400 200],'YLim',[-1 6]);
-error_pop_fig1(1,2).axe_property('XLim',[-200 1000],'YLim',[-1 6],'YTick',[],'YColor',[1 1 1]);
 
 
-error_pop_fig1(2,1).axe_property('XLim',[-400 200],'YLim',[-1 6]);
-error_pop_fig1(2,2).axe_property('XLim',[-200 1000],'YLim',[-1 6],'YTick',[],'YColor',[1 1 1]);
-
-error_pop_fig1_out = figure('Renderer', 'painters', 'Position', [100 100 400 400]);
-error_pop_fig1.draw
 
 
-%% Analyse: Clustering approach for errors
-sdfWindow = timewins.sdf;
-blWindow = [-100:0];
-inputNeurons = 1:size(mcc_map_info,1);
-inputSDF_target = {sdf_noncanc_all_target(inputNeurons,:),sdf_nostop_all_target(inputNeurons,:)};
-inputSDF_error = {sdf_noncanc_all_saccade(inputNeurons,:),sdf_nostop_all_saccade(inputNeurons,:)};
-inputSDF_tone = {sdf_noncanc_all_tone(inputNeurons,:),sdf_nostop_all_tone(inputNeurons,:)};
-
-sdfTimes = {sdfWindow, sdfWindow};
-sdfEpoch = {[-200:600],[-200:600]};
-
-colorMapping = [1,2];
-
-[sortIDs,idxDist, raw, respSumStruct, rawLink,myK] =...
-    consensusCluster(inputSDF_error,sdfTimes,'-e',sdfEpoch,'-ei',colorMapping);
-normResp_target = scaleResp(inputSDF_target,sdfTimes,'max','-bl',blWindow);
-normResp_error = scaleResp(inputSDF_error,sdfTimes,'max','-bl',blWindow);
-normResp_tone = scaleResp(inputSDF_tone,sdfTimes,'max','-bl',blWindow);
+%% Cuttings:
+% %% 
+% 
+% for cluster_i = 3
+%     for neuron_i = 1:5
+%         neuron_j = clusterNeurons{cluster_i}(neuron_i);
+%         
+%         figure; hold on
+%         plot(sdfTimes{1},norm_sdf.saccade.noncanc(neuron_j,:), 'color', [colors.noncanc]);
+%         plot(sdfTimes{2},norm_sdf.saccade.nostop(neuron_j,:), 'color', [colors.nostop]);
+%         vline([0 500 1000], 'k--'); xlim([-200 1500])
+%       
+%         title(['Neuron: ' int2str(neuron_j)])
+%       
+%     end   
+% end
 
 
 
@@ -235,3 +294,53 @@ normResp_tone = scaleResp(inputSDF_tone,sdfTimes,'max','-bl',blWindow);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+% 
+% 
+% 
+% 
+% %% Figure: Plot population of significant units
+% 
+% clear error_pop_fig1 input_neurons
+% 
+% input_neurons_a = neuron_idx.error.nc_fac;
+% input_neurons_b = neuron_idx.error.go_fac;
+% 
+% 
+% % Type B (Error Suppressed)
+% error_pop_fig1(2,1)= gramm('x',-1000:2000,...
+%     'y',[num2cell(norm_sdf.target.nostop(input_neurons_b,:),2);num2cell(norm_sdf.target.noncanc(input_neurons_b,:),2)],...
+%     'color',[repmat({'1_nostop'},length(input_neurons_b),1);repmat({'2_noncanc'},length(input_neurons_b),1)]);
+% 
+% error_pop_fig1(2,2)= gramm('x',-1000:2000,...
+%     'y',[num2cell(norm_sdf.saccade.nostop(input_neurons_b,:),2);num2cell(norm_sdf.saccade.noncanc(input_neurons_b,:),2)],...
+%     'color',[repmat({'1_nostop'},length(input_neurons_b),1);repmat({'2_noncanc'},length(input_neurons_b),1)]);
+% 
+% 
+% for epoch_i = 1:2
+%     for class_i = 1:2
+%         error_pop_fig1(class_i,epoch_i).stat_summary();
+%         error_pop_fig1(class_i,epoch_i).set_color_options('map',[colors.nostop;colors.noncanc]);
+%         error_pop_fig1(class_i,epoch_i).no_legend();
+%     end
+% end
+% 
+% error_pop_fig1(1,1).axe_property('XLim',[-400 200],'YLim',[-1 6]);
+% error_pop_fig1(1,2).axe_property('XLim',[-200 1000],'YLim',[-1 6],'YTick',[],'YColor',[1 1 1]);
+% 
+% 
+% error_pop_fig1(2,1).axe_property('XLim',[-400 200],'YLim',[-1 6]);
+% error_pop_fig1(2,2).axe_property('XLim',[-200 1000],'YLim',[-1 6],'YTick',[],'YColor',[1 1 1]);
+% 
+% error_pop_fig1_out = figure('Renderer', 'painters', 'Position', [100 100 400 400]);
+% error_pop_fig1.draw
