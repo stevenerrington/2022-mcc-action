@@ -95,7 +95,7 @@ end
 
 figure('Renderer', 'painters', 'Position', [100 100 300 400]);
 imagesc(-1000:2000,1:size(mcc_map_info,1),norm_sdf.saccade.diff(sort_activity_idx,:))
-xlim([-200 600]); set(gca,'CLim',[-5 5]); colorbar('southoutside')
+xlim([-200 600]); set(gca,'CLim',[-3 3]); colorbar('southoutside')
 set(gca,'TickDir','out','FontSize',10,'YTick',[],'YColor',[1 1 1]); box off
 set(gcf,'color','w');
 colormap(colors.error_gradient); vline(0,'k')
@@ -123,45 +123,17 @@ neuron_idx.error.nc_fac = find(error_table.h == 1 & error_table.nc_dir == 1);
 neuron_idx.error.go_fac = find(error_table.h == 1 & error_table.nc_dir == 0);
 
 
-%% Extract: Produce summary sheet figure for mean SDF
-% 
-% n_plot_x = 4; n_plot_y = 3; n_plot_sheet = n_plot_x*n_plot_y;
-% n_batches = round(size(neuron_idx.error.nc_fac,1)/n_plot_sheet,-1)+1;
-% 
-% list_i = 0;
-% 
-% for page_i = 1:n_batches
-%     fig_out = figure('Renderer', 'painters', 'Position', [100 100 1200 800]);
-%     
-%     for plot_i = 1:n_plot_sheet
-%         list_i = list_i+1;
-%         neuron_i = neuron_idx.error.nc_fac(list_i);
-%         try
-%             subplot(n_plot_x, n_plot_y, plot_i); hold on
-%             plot(timewins.sdf, sdf_noncanc_all_saccade(neuron_i,:),'color',colors.noncanc)
-%             plot(timewins.sdf, sdf_nostop_all_saccade(neuron_i,:),'color',colors.nostop)
-%             xlim([-200 800]); vline(0,'k--'); %, hline([-3 3],'r:'); hline([-6 6],'r:'); 
-%             xlabel('Time from Target (ms)')
-%             ylabel('Firing rate (z-score)')
-%             title([mcc_map_info.session{neuron_i} ': ' mcc_map_info.unit{neuron_i}])
-%             
-%             
-%         catch
-%             continue
-%         end
-%         
-%     end
-%     
-%     filename = fullfile(dirs.root,'results','sdf_overview_figs',['errorsdf_saccade_overview_pg' int2str(page_i) '.pdf']);
-%     set(fig_out,'PaperSize',[20 10]); %set the paper size to what you want
-%     print(fig_out,filename,'-dpdf') % then print it
-%     close(fig_out)
-% end
+%%
+
+
+
+
 
 
 %% Analyse: Clustering approach for errors
 sdfWindow = timewins.sdf;
-inputNeurons = []; inputNeurons = neuron_idx.error.nc_fac;
+
+inputNeurons = []; inputNeurons = neuron_idx.error.nc_fac ;
 inputSDF_target = {norm_sdf.target.noncanc(inputNeurons,:),norm_sdf.target.nostop(inputNeurons,:)};
 inputSDF_error = {norm_sdf.saccade.noncanc(inputNeurons,:),norm_sdf.saccade.nostop(inputNeurons,:)};
 inputSDF_tone = {norm_sdf.tone.noncanc(inputNeurons,:),norm_sdf.tone.nostop(inputNeurons,:)};
@@ -172,8 +144,7 @@ sdfEpoch = {[0:500],[0:500]};
 colorMapping = [1,2];
 
 [sortIDs,idxDist, raw, respSumStruct, rawLink,myK] =...
-    consensusCluster(inputSDF_error,sdfTimes,'-e',sdfEpoch,'-ei',colorMapping,'-er',sdfEpoch,...
-    '-mn',round(0.1*length(inputNeurons)),'-c',0.75);
+    consensusCluster(inputSDF_error,sdfTimes,'-e',sdfEpoch,'-ei',colorMapping,'-er',sdfEpoch,'-c',0.25);
 
 nClusters_manual = myK; clusterNeurons = [];
 for cluster_i = 1:nClusters_manual
@@ -201,7 +172,6 @@ xlabel('Unit Number'); set(gca,'YAxisLocation','Left');
 
 
 % Generate a quick sdf of each cluster
-
 for cluster_i = 1:nClusters_manual
     cluster_shift = 4*(cluster_i-1);
     figure('Renderer', 'painters', 'Position', [100 100 800 500]);hold on
@@ -222,23 +192,23 @@ end
 
 
 %% Extract: Produce summary sheet figure for mean SDF
-cluster_i = 4;
+for cluster = 1:myK
 n_plot_x = 4; n_plot_y = 3; n_plot_sheet = n_plot_x*n_plot_y;
 n_batches = round(length(clusterNeurons{cluster_i})/n_plot_sheet,-1)+1;
 
-list_i = 0;
+neuron_list_i = 0;
 
 for page_i = 1:n_batches
     fig_out = figure('Renderer', 'painters', 'Position', [100 100 1200 800]);
 
     for plot_i = 1:n_plot_sheet
-        list_i = list_i+1;
-        neuron_i = clusterNeurons{cluster_i}(list_i);
+        neuron_list_i = neuron_list_i+1;
         try
+            neuron_i = clusterNeurons{cluster_i}(neuron_list_i);
             subplot(n_plot_x, n_plot_y, plot_i); hold on
             plot(timewins.sdf, sdf_noncanc_all_saccade(neuron_i,:),'color',colors.noncanc)
             plot(timewins.sdf, sdf_nostop_all_saccade(neuron_i,:),'color',colors.nostop)
-            xlim([-200 800]); vline(0,'k--'); %, hline([-3 3],'r:'); hline([-6 6],'r:');
+            xlim([-200 600]); vline(0,'k--'); %, hline([-3 3],'r:'); hline([-6 6],'r:');
             xlabel('Time from Target (ms)')
             ylabel('Firing rate (z-score)')
             title([mcc_map_info.session{neuron_i} ': ' mcc_map_info.unit{neuron_i}])
@@ -250,10 +220,12 @@ for page_i = 1:n_batches
 
     end
 
-    filename = fullfile(dirs.root,'results','sdf_overview_figs',['cluster4_errorsdf_saccade_overview_pg' int2str(page_i) '.pdf']);
+    filename = fullfile(dirs.root,'results','sdf_overview_figs',['cluster_' int2str(myK) '_errorsdf_saccade_overview_pg' int2str(page_i) '.pdf']);
     set(fig_out,'PaperSize',[20 10]); %set the paper size to what you want
     print(fig_out,filename,'-dpdf') % then print it
     close(fig_out)
+end
+
 end
 
 
@@ -271,76 +243,63 @@ end
 
 
 
-%% Cuttings:
-% %% 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% Extract: Produce summary sheet figure for mean SDF
 % 
-% for cluster_i = 3
-%     for neuron_i = 1:5
-%         neuron_j = clusterNeurons{cluster_i}(neuron_i);
+% n_plot_x = 4; n_plot_y = 3; n_plot_sheet = n_plot_x*n_plot_y;
+% n_batches = round(size(neuron_idx.error.nc_fac,1)/n_plot_sheet,-1)+1;
+% 
+% list_i = 0;
+% 
+% for page_i = 1:n_batches
+%     fig_out = figure('Renderer', 'painters', 'Position', [100 100 1200 800]);
+%     
+%     for plot_i = 1:n_plot_sheet
+%         list_i = list_i+1;
+%         neuron_i = neuron_idx.error.nc_fac(list_i);
+%         try
+%             subplot(n_plot_x, n_plot_y, plot_i); hold on
+%             plot(timewins.sdf, sdf_noncanc_all_saccade(neuron_i,:),'color',colors.noncanc)
+%             plot(timewins.sdf, sdf_nostop_all_saccade(neuron_i,:),'color',colors.nostop)
+%             xlim([-200 800]); vline(0,'k--'); %, hline([-3 3],'r:'); hline([-6 6],'r:'); 
+%             xlabel('Time from Saccade (ms)')
+%             ylabel('Firing rate (z-score)')
+%             title([mcc_map_info.session{neuron_i} ': ' mcc_map_info.unit{neuron_i}])
+%             
+%             
+%         catch
+%             continue
+%         end
 %         
-%         figure; hold on
-%         plot(sdfTimes{1},norm_sdf.saccade.noncanc(neuron_j,:), 'color', [colors.noncanc]);
-%         plot(sdfTimes{2},norm_sdf.saccade.nostop(neuron_j,:), 'color', [colors.nostop]);
-%         vline([0 500 1000], 'k--'); xlim([-200 1500])
-%       
-%         title(['Neuron: ' int2str(neuron_j)])
-%       
-%     end   
-% end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% 
-% 
-% 
-% 
-% %% Figure: Plot population of significant units
-% 
-% clear error_pop_fig1 input_neurons
-% 
-% input_neurons_a = neuron_idx.error.nc_fac;
-% input_neurons_b = neuron_idx.error.go_fac;
-% 
-% 
-% % Type B (Error Suppressed)
-% error_pop_fig1(2,1)= gramm('x',-1000:2000,...
-%     'y',[num2cell(norm_sdf.target.nostop(input_neurons_b,:),2);num2cell(norm_sdf.target.noncanc(input_neurons_b,:),2)],...
-%     'color',[repmat({'1_nostop'},length(input_neurons_b),1);repmat({'2_noncanc'},length(input_neurons_b),1)]);
-% 
-% error_pop_fig1(2,2)= gramm('x',-1000:2000,...
-%     'y',[num2cell(norm_sdf.saccade.nostop(input_neurons_b,:),2);num2cell(norm_sdf.saccade.noncanc(input_neurons_b,:),2)],...
-%     'color',[repmat({'1_nostop'},length(input_neurons_b),1);repmat({'2_noncanc'},length(input_neurons_b),1)]);
-% 
-% 
-% for epoch_i = 1:2
-%     for class_i = 1:2
-%         error_pop_fig1(class_i,epoch_i).stat_summary();
-%         error_pop_fig1(class_i,epoch_i).set_color_options('map',[colors.nostop;colors.noncanc]);
-%         error_pop_fig1(class_i,epoch_i).no_legend();
 %     end
+%     
+%     filename = fullfile(dirs.root,'results','sdf_overview_figs',['errorsdf_saccade_overview_pg' int2str(page_i) '.pdf']);
+%     set(fig_out,'PaperSize',[20 10]); %set the paper size to what you want
+%     print(fig_out,filename,'-dpdf') % then print it
+%     close(fig_out)
 % end
-% 
-% error_pop_fig1(1,1).axe_property('XLim',[-400 200],'YLim',[-1 6]);
-% error_pop_fig1(1,2).axe_property('XLim',[-200 1000],'YLim',[-1 6],'YTick',[],'YColor',[1 1 1]);
-% 
-% 
-% error_pop_fig1(2,1).axe_property('XLim',[-400 200],'YLim',[-1 6]);
-% error_pop_fig1(2,2).axe_property('XLim',[-200 1000],'YLim',[-1 6],'YTick',[],'YColor',[1 1 1]);
-% 
-% error_pop_fig1_out = figure('Renderer', 'painters', 'Position', [100 100 400 400]);
-% error_pop_fig1.draw

@@ -78,17 +78,6 @@ randReps = 5;
 meanMedian = 'median';
 distOnly = 1;
 unClustCrit = .1;
-
-% Default analysis epochs
-preVis = -100:0;
-visTrans = 50:100;
-visSust = 100:150;
-preMov = -50:0;
-postMov = 0:50;
-nextVis = 50:100;
-myEpocs = {preVis,visTrans,visSust,preMov,postMov,nextVis};
-myEpocInds = [1,1,1,2,2,2];
-myEpocWinds = allTimeCell;
 normSD = 1:length(goodSDF);
 
 %% Decode varargin
