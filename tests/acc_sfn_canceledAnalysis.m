@@ -21,15 +21,15 @@ sum(nTrials)
 sum(nTrials(strcmp(monkey,'darwin')))
 sum(nTrials(strcmp(monkey,'joule')))
 
-% ACC sessions:
+% mcc sessions:
 sum(nElectrodes(strcmp(monkey,'darwin')))
 sum(nElectrodes(strcmp(monkey,'joule')))
 
-sum(strcmp(acc_map_info.monkey,'dar'))
-sum(strcmp(acc_map_info.monkey,'jou'))
+sum(strcmp(mcc_map_info.monkey,'dar'))
+sum(strcmp(mcc_map_info.monkey,'jou'))
 
 unique(dajo_datamap_curated.sessionBeh)
-unique(acc_map_info.session)
+unique(mcc_map_info.session)
 
 %% Compare SSRT
 clear monkey nTrials
@@ -59,18 +59,18 @@ histogram(ssrt(strcmp(monkey,'dar')),10:10:180)
 
 
 %% Extract: Get latency-matched SDF for non-canceled trials
-parfor neuron_i = 1:size(acc_map_info,1)
+parfor neuron_i = 1:size(mcc_map_info,1)
     
-    neuralFilename = acc_map_info.session{neuron_i};
-    neuronLabel = acc_map_info.unit{neuron_i};
-    fprintf('Extracting: %s - %s ... [%i of %i]  \n',neuralFilename,neuronLabel,neuron_i,size(acc_map_info,1))
+    neuralFilename = mcc_map_info.session{neuron_i};
+    neuronLabel = mcc_map_info.unit{neuron_i};
+    fprintf('Extracting: %s - %s ... [%i of %i]  \n',neuralFilename,neuronLabel,neuron_i,size(mcc_map_info,1))
     
     %... and find the corresponding behavior file index
     behFilename = data_findBehFile(neuralFilename);
     behaviorIdx = find(strcmp(dataFiles_beh,behFilename(1:end-4)));
     
     % Load in pre-processed spike data
-    data_in = load(fullfile(dirs.data,'SDF',...
+    data_in = load(fullfile('D:\projects\2022-mcc-action\data\','SDF',...
         [neuralFilename '_SDF_' neuronLabel '.mat']));
     
     sdf_canceled_targetx = []; sdf_nostop_targetx = [];
@@ -79,9 +79,9 @@ parfor neuron_i = 1:size(acc_map_info,1)
     sdf_canceled_tonex = []; sdf_nostop_tonex = [];
     
     % Latency match
-    for ssd_i = 1:length(behavior(behaviorIdx).stopSignalBeh.inh_SSD)
-        trl_canceled = []; trl_canceled = behavior(behaviorIdx).ttm.C.C{ssd_i};
-        trl_nostop = []; trl_nostop = behavior(behaviorIdx).ttm.C.GO{ssd_i};
+    for ssd_i = 1:length(behavior(behaviorIdx,:).stopSignalBeh.inh_SSD)
+        trl_canceled = []; trl_canceled = behavior(behaviorIdx,:).ttm.C.C{ssd_i};
+        trl_nostop = []; trl_nostop = behavior(behaviorIdx,:).ttm.C.GO{ssd_i};
         
         if length(trl_canceled) < 10 | length(trl_nostop) < 10
             sdf_canceled_ssdx(ssd_i,:) = nan(1,length(-1000:2000));
@@ -93,9 +93,6 @@ parfor neuron_i = 1:size(acc_map_info,1)
             % SSD:
             sdf_canceled_ssdx(ssd_i,:) = nanmean(data_in.SDF.stopSignal_artifical(trl_canceled,:));
             sdf_nostop_ssdx(ssd_i,:) = nanmean(data_in.SDF.stopSignal_artifical(trl_nostop,:));
-            % SSRT:
-            sdf_canceled_ssrtx(ssd_i,:) = nanmean(data_in.SDF.ssrt(trl_canceled,:));
-            sdf_nostop_ssrtx(ssd_i,:) = nanmean(data_in.SDF.ssrt(trl_nostop,:));
             % Tone:
             sdf_canceled_tonex(ssd_i,:) = nanmean(data_in.SDF.tone(trl_canceled,:));
             sdf_nostop_tonex(ssd_i,:) = nanmean(data_in.SDF.tone(trl_nostop,:));
@@ -103,7 +100,7 @@ parfor neuron_i = 1:size(acc_map_info,1)
     end
     
     trl_noncanceled = [];
-    trl_noncanceled = behavior(behaviorIdx).ttx.noncanceled.all.all;
+    trl_noncanceled = behavior(behaviorIdx,:).ttx.noncanceled.all.all;
     
     % Get mean SDF for:
     % - Target
@@ -113,29 +110,10 @@ parfor neuron_i = 1:size(acc_map_info,1)
     sdf_canceled_all_stopsignal(neuron_i,:) = nanmean(sdf_canceled_ssdx);
     sdf_nostop_all_stopsignal(neuron_i,:) = nanmean(sdf_nostop_ssdx);
     sdf_noncanc_all_stopsignal(neuron_i,:) = nanmean(data_in.SDF.stopSignal_artifical(trl_noncanceled,:));
-    % - SSRT
-    sdf_canceled_all_ssrt(neuron_i,:) = nanmean(sdf_canceled_ssrtx);
-    sdf_nostop_all_ssrt(neuron_i,:) = nanmean(sdf_nostop_ssrtx);
     % - Tone
     sdf_canceled_all_tone(neuron_i,:) = nanmean(sdf_canceled_tonex);
     sdf_nostop_all_tone(neuron_i,:) = nanmean(sdf_nostop_tonex);
     sdf_noncanc_all_tone(neuron_i,:) = nanmean(data_in.SDF.tone(trl_noncanceled,:));
-    
-     % Error ---- IN PROGRESS
-    sdf_nostop_saccade(neuron_i,:) = nanmean(data_in.SDF.saccade(behavior(behaviorIdx).ttx.nostop.all.all,:));
-    sdf_noncanc_saccade(neuron_i,:) = nanmean(data_in.SDF.saccade(behavior(behaviorIdx).ttx.noncanceled.all.all,:));
-        
-    
-    % Value ---- IN PROGRESS
-    sdf_canceled_hi_stopsignal(neuron_i,:) = nanmean(data_in.SDF.stopSignal_artifical(behavior(behaviorIdx).ttx.canceled.all.hi,:));
-    sdf_canceled_lo_stopsignal(neuron_i,:) = nanmean(data_in.SDF.stopSignal_artifical(behavior(behaviorIdx).ttx.canceled.all.lo,:));
-    sdf_nostop_hi_stopsignal(neuron_i,:) = nanmean(data_in.SDF.stopSignal_artifical(behavior(behaviorIdx).ttx.nostop.all.hi,:));
-    sdf_nostop_lo_stopsignal(neuron_i,:) = nanmean(data_in.SDF.stopSignal_artifical(behavior(behaviorIdx).ttx.nostop.all.lo,:));
-    
-    % Trial history ---- IN PROGRESS
-    sdf_post_canc_target(neuron_i,:) = nanmean(data_in.SDF.target(behavior(behaviorIdx).ttx_history.NS_after_C,:));
-    sdf_post_nostop_target(neuron_i,:) = nanmean(data_in.SDF.target(behavior(behaviorIdx).ttx_history.NS_after_NS,:));
-    sdf_post_noncanc_target(neuron_i,:) = nanmean(data_in.SDF.target(behavior(behaviorIdx).ttx_history.NS_after_NC,:));
 
     % Save SSD specific activity, just incase.
     sdf_canceled_ssd{neuron_i} = sdf_canceled_ssdx;
@@ -144,11 +122,11 @@ parfor neuron_i = 1:size(acc_map_info,1)
 end
 
 %% Analyse: Compare activity for modulation post-stopping
-parfor neuron_i = 1:size(acc_map_info,1)
+parfor neuron_i = 1:size(mcc_map_info,1)
     
-    neuralFilename = acc_map_info.session{neuron_i};
-    neuronLabel = acc_map_info.unit{neuron_i};
-    fprintf('Extracting: %s - %s ... [%i of %i]  \n',neuralFilename,neuronLabel,neuron_i,size(acc_map_info,1))
+    neuralFilename = mcc_map_info.session{neuron_i};
+    neuronLabel = mcc_map_info.unit{neuron_i};
+    fprintf('Extracting: %s - %s ... [%i of %i]  \n',neuralFilename,neuronLabel,neuron_i,size(mcc_map_info,1))
     
     %... and find the corresponding behavior file index
     behFilename = data_findBehFile(neuralFilename);
@@ -159,8 +137,8 @@ parfor neuron_i = 1:size(acc_map_info,1)
         [neuralFilename '_SDF_' neuronLabel '.mat']));
     
     trl_canceled = []; trl_nostop = [];
-    trl_canceled = behavior(behaviorIdx).ttx.canceled.all.all;
-    trl_nostop = behavior(behaviorIdx).ttx.nostop.all.all;
+    trl_canceled = behavior(behaviorIdx,:).ttx.canceled.all.all;
+    trl_nostop = behavior(behaviorIdx,:).ttx.nostop.all.all;
     
     canc_sdf_mean = []; nostop_sdf_mean = [];
     canc_sdf_mean = nanmean(data_in.SDF.ssrt(trl_canceled,timewins.ssrt_comp+timewins.zero),2);
@@ -316,15 +294,15 @@ figure('Renderer', 'painters', 'Position', [100 100 200 800]);hold on
 for cluster_i = 1:nClusters_manual
     subplot(nClusters_manual,1,cluster_i)
     
-    cluster_spkwidth(cluster_i,1) = sum(abs(acc_map_info.spk_width(inputNeurons(clusterNeurons{cluster_i}))) >= spk_width_cutoff);
-    cluster_spkwidth(cluster_i,2) = sum(abs(acc_map_info.spk_width(inputNeurons(clusterNeurons{cluster_i}))) < spk_width_cutoff);
+    cluster_spkwidth(cluster_i,1) = sum(abs(mcc_map_info.spk_width(inputNeurons(clusterNeurons{cluster_i}))) >= spk_width_cutoff);
+    cluster_spkwidth(cluster_i,2) = sum(abs(mcc_map_info.spk_width(inputNeurons(clusterNeurons{cluster_i}))) < spk_width_cutoff);
     
     
     pie([cluster_spkwidth(cluster_i,1),cluster_spkwidth(cluster_i,2)]);
 end
 
-sum(abs(acc_map_info.spk_width)>= spk_width_cutoff)
-sum(abs(acc_map_info.spk_width) < spk_width_cutoff)
+sum(abs(mcc_map_info.spk_width)>= spk_width_cutoff)
+sum(abs(mcc_map_info.spk_width) < spk_width_cutoff)
 
 %% Analyse: dorsal and ventral MCC
 
@@ -339,17 +317,17 @@ for cluster_i = 1:nClusters_manual
     sample_array = zeros(length(ml_axis_range),length(ap_axis_range), length(depth_range));
     
     for neuron_i = 1:length(cluster_neurons)
-        ap_sample_ref = find(ap_axis_range == acc_map_info.ap(cluster_neurons(neuron_i)));
-        ml_sample_ref = find(ml_axis_range == acc_map_info.ml(cluster_neurons(neuron_i)));
-        depth_sample_ref = find(depth_range == acc_map_info.depth(cluster_neurons(neuron_i)));
+        ap_sample_ref = find(ap_axis_range == mcc_map_info.ap(cluster_neurons(neuron_i)));
+        ml_sample_ref = find(ml_axis_range == mcc_map_info.ml(cluster_neurons(neuron_i)));
+        depth_sample_ref = find(depth_range == mcc_map_info.depth(cluster_neurons(neuron_i)));
         
         sample_array(ap_sample_ref,ml_sample_ref,depth_sample_ref) =...
             sample_array(ap_sample_ref,ml_sample_ref,depth_sample_ref) + 1;
         
         sample_coords(neuron_i,:) = ...
-            [acc_map_info.ap(cluster_neurons(neuron_i)),...
-            acc_map_info.ml(cluster_neurons(neuron_i)),...
-            acc_map_info.depth(cluster_neurons(neuron_i))];
+            [mcc_map_info.ap(cluster_neurons(neuron_i)),...
+            mcc_map_info.ml(cluster_neurons(neuron_i)),...
+            mcc_map_info.depth(cluster_neurons(neuron_i))];
     end
     
     subplot(1,4,cluster_i); hold on
@@ -365,10 +343,10 @@ for cluster_i = 1:nClusters_manual
 end
 
 cluster_i = 4;
-[sum(acc_map_info.depth <= 0) - sum(acc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) <= 0),...
-sum(acc_map_info.depth > 0) - sum(acc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) > 0);...
-sum(acc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) <= 0),...
-sum(acc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) > 0)]
+[sum(mcc_map_info.depth <= 0) - sum(mcc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) <= 0),...
+sum(mcc_map_info.depth > 0) - sum(mcc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) > 0);...
+sum(mcc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) <= 0),...
+sum(mcc_map_info.depth(inputNeurons(clusterNeurons{cluster_i})) > 0)]
 
 
 %% Analyse: activity as a function of SSD
@@ -380,11 +358,11 @@ for cluster_i = 1:nClusters_manual
     for neuron_list_i = 1:length(neuron_list)
         neuron_i = neuron_list(neuron_list_i);
         count = count + 1;
-        behFilename = data_findBehFile(acc_map_info.session{neuron_list(neuron_list_i)});
+        behFilename = data_findBehFile(mcc_map_info.session{neuron_list(neuron_list_i)});
         behaviorIdx = find(strcmp(dataFiles_beh,behFilename(1:end-4)));
-        ssrt = round(behavior(behaviorIdx).stopSignalBeh.ssrt.integrationWeighted);
+        ssrt = round(behavior(behaviorIdx,:).stopSignalBeh.ssrt.integrationWeighted);
         
-        mid_ssd_idx = behavior(behaviorIdx).stopSignalBeh.midSSDidx;
+        mid_ssd_idx = behavior(behaviorIdx,:).stopSignalBeh.midSSDidx;
         
         conflict_epoch = []; conflict_epoch = [-50:50]+ssrt+timewins.zero;
         
@@ -410,13 +388,13 @@ for cluster_i = 1:nClusters_manual
         ssd_sdf_all_nostop{cluster_i,2}(neuron_list_i,:) = sdf_nostop_ssd{neuron_i}(mid_ssd_idx,:)./sdf_max;
         ssd_sdf_all_nostop{cluster_i,3}(neuron_list_i,:) = sdf_nostop_ssd{neuron_i}(mid_ssd_idx+1,:)./sdf_max;       
         
-        early_ssd_ssd = behavior(behaviorIdx).stopSignalBeh.inh_SSD(mid_ssd_idx-1);
-        mid_ssd_ssd = behavior(behaviorIdx).stopSignalBeh.inh_SSD(mid_ssd_idx);
-        late_ssd_ssd = behavior(behaviorIdx).stopSignalBeh.inh_SSD(mid_ssd_idx+1);
+        early_ssd_ssd = behavior(behaviorIdx,:).stopSignalBeh.inh_SSD(mid_ssd_idx-1);
+        mid_ssd_ssd = behavior(behaviorIdx,:).stopSignalBeh.inh_SSD(mid_ssd_idx);
+        late_ssd_ssd = behavior(behaviorIdx,:).stopSignalBeh.inh_SSD(mid_ssd_idx+1);
         
-        early_ssd_pnc = behavior(behaviorIdx).stopSignalBeh.inh_pnc(mid_ssd_idx-1);
-        mid_ssd_pnc = behavior(behaviorIdx).stopSignalBeh.inh_pnc(mid_ssd_idx);
-        late_ssd_pnc = behavior(behaviorIdx).stopSignalBeh.inh_pnc(mid_ssd_idx+1);
+        early_ssd_pnc = behavior(behaviorIdx,:).stopSignalBeh.inh_pnc(mid_ssd_idx-1);
+        mid_ssd_pnc = behavior(behaviorIdx,:).stopSignalBeh.inh_pnc(mid_ssd_idx);
+        late_ssd_pnc = behavior(behaviorIdx,:).stopSignalBeh.inh_pnc(mid_ssd_idx+1);
         
         
         functional_stopping_activity(count,:) =...
@@ -485,14 +463,14 @@ end
 
 
 %% PCA Analysis: Stop-Signal
-for neuron_i = 1:size(acc_map_info,1)
+for neuron_i = 1:size(mcc_map_info,1)
     
-    neuralFilename = acc_map_info.session{neuron_i};
-    neuronLabel = acc_map_info.unit{neuron_i};    
+    neuralFilename = mcc_map_info.session{neuron_i};
+    neuronLabel = mcc_map_info.unit{neuron_i};    
     %... and find the corresponding behavior file index
     behFilename = data_findBehFile(neuralFilename);
     behaviorIdx = find(strcmp(dataFiles_beh,behFilename(1:end-4)));
-    mid_ssd_idx = behavior(behaviorIdx).stopSignalBeh.midSSDidx;
+    mid_ssd_idx = behavior(behaviorIdx,:).stopSignalBeh.midSSDidx;
  
     c_ssd1(neuron_i,:) = sdf_canceled_ssd{neuron_i}(mid_ssd_idx-1,:);
     c_ssd2(neuron_i,:) = sdf_canceled_ssd{neuron_i}(mid_ssd_idx,:);

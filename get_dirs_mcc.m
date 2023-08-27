@@ -8,9 +8,9 @@ switch user
         dirs.data = '/Volumes/Alpha/data/2021_Cmand_DaJo';
         
     case 'home'
-        dirs.root = 'D:\projectCode\2022-mcc-action';
-        dirs.toolbox = 'D:\projectCode\toolbox\';
-        dirs.dajo_toolbox = 'D:\projectCode\2022-dajo-toolbox';
+        dirs.root = 'D:\projects\2022-mcc-action';
+        dirs.toolbox = 'D:\projects\toolbox\';
+        dirs.dajo_toolbox = 'D:\projects\2022-dajo-toolbox';
         dirs.data = 'D:\data\2021_Cmand_DaJo';
        
 end
