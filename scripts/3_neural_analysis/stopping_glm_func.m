@@ -1,6 +1,4 @@
-
-%% 
-neuron_i = 3;
+function [glm_output, encoding_flag, encoding_beta] = stopping_glm_func(neuron_i, mcc_map_info, dataFiles_beh, dirs)
 
 neuralFilename = mcc_map_info.session{neuron_i};
 neuronLabel = mcc_map_info.unit{neuron_i};
@@ -79,7 +77,7 @@ glm_output.trial_type.beta_weights = [];
 u_t_mdl = [];
 
 reg_tbl_trialtype = reg_tbl(reg_tbl.trial_type == 1 | reg_tbl.trial_type == 2,:);
-
+   
 % For each averaged time point
 for timepoint_i = 1:n_times
     
@@ -87,21 +85,16 @@ for timepoint_i = 1:n_times
     reg_tbl_trialtype.firing_rate = window_sdf(reg_tbl.trial_type == 1 | reg_tbl.trial_type == 2,timepoint_i);
     
     % Fit the GLM for this
-    u_t_mdl = fitlm(reg_tbl_trialtype,'firing_rate ~ trial_type + ssd + trial_number');
+    u_t_mdl = fitlm(reg_tbl_trialtype,'firing_rate ~ trial_type + trial_number');
     
     % GLM output ---------------------------------
     % - Trial type
     glm_output.trial_type.sig_times(1,timepoint_i) = u_t_mdl.Coefficients.pValue(2) < .01; % trial type
     glm_output.trial_type.beta_weights(1,timepoint_i) = u_t_mdl.Coefficients.tStat(2); % trial type
     
-    % - Stop-signal delay
-    glm_output.trial_type.sig_times(2,timepoint_i) = u_t_mdl.Coefficients.pValue(3) < .01; % ssd
-    glm_output.trial_type.beta_weights(2,timepoint_i) = u_t_mdl.Coefficients.tStat(3); % ssd
-    
     % - Trial number
-    glm_output.trial_type.sig_times(3,timepoint_i) = u_t_mdl.Coefficients.pValue(4) < .01; % trial_number
-    glm_output.trial_type.beta_weights(3,timepoint_i) = u_t_mdl.Coefficients.tStat(4); % trial_number
-
+    glm_output.trial_type.sig_times(2,timepoint_i) = u_t_mdl.Coefficients.pValue(3) < .01; % trial_number
+    glm_output.trial_type.beta_weights(2,timepoint_i) = u_t_mdl.Coefficients.tStat(3); % trial_number
     
 end
 
@@ -127,12 +120,12 @@ for timepoint_i = 1:n_times
     glm_output.ssd.beta_weights(1,timepoint_i) = u_t_mdl.Coefficients.tStat(2); % ssd
     
     % - Value
-    glm_output.ssd.sig_times(2,timepoint_i) = u_t_mdl.Coefficients.pValue(3) < .01; % ssd
-    glm_output.ssd.beta_weights(2,timepoint_i) = u_t_mdl.Coefficients.tStat(3); % ssd
+    glm_output.ssd.sig_times(2,timepoint_i) = u_t_mdl.Coefficients.pValue(3) < .01; % value
+    glm_output.ssd.beta_weights(2,timepoint_i) = u_t_mdl.Coefficients.tStat(3); % value
         
     % - SSD x Value
-    glm_output.ssd.sig_times(3,timepoint_i) = u_t_mdl.Coefficients.pValue(5) < .01; % ssd
-    glm_output.ssd.beta_weights(3,timepoint_i) = u_t_mdl.Coefficients.tStat(5); % ssd
+    glm_output.ssd.sig_times(3,timepoint_i) = u_t_mdl.Coefficients.pValue(5) < .01; % ssd x value
+    glm_output.ssd.beta_weights(3,timepoint_i) = u_t_mdl.Coefficients.tStat(5); % % ssd x value
     
     % - Trial number
     glm_output.ssd.sig_times(4,timepoint_i) = u_t_mdl.Coefficients.pValue(4) < .01; % trial_number
@@ -145,7 +138,7 @@ end
 
 %% Determine periods of significance
 
-signal_detect_length = 100;
+signal_detect_length = 50;
 signal_detect_wins = signal_detect_length/window_shift;
 
 % now ask whether this unit was significant with significance defined as at least
@@ -161,58 +154,51 @@ signal_detect_wins = signal_detect_length/window_shift;
 [~, value_sig_len, ~] = ZeroOnesCount(glm_output.ssd.sig_times(2,analysis_win_idx)); % choice direction
 
 
+encoding_flag = []; encoding_beta = [];
 
-u_sig(1,1) = any(canc_sig_len >= signal_detect_wins);
-u_sig(1,2) = any(ssd_sig_len >= signal_detect_wins);
-u_sig(1,3) = any(value_sig_len >= signal_detect_wins);
+
+encoding_flag(1,1) = any(canc_sig_len >= signal_detect_wins);
+encoding_flag(1,2) = any(ssd_sig_len >= signal_detect_wins);
+encoding_flag(1,3) = any(value_sig_len >= signal_detect_wins);
 
 
 % Get average beta-weights
-u_beta(1,1) = nanmean(glm_output.trial_type.beta_weights(1,analysis_win_idx));
-u_beta(1,2) = nanmean(glm_output.ssd.beta_weights(1,analysis_win_idx));
-u_beta(1,3) = nanmean(glm_output.ssd.beta_weights(2,analysis_win_idx));
+encoding_beta(1,1) = nanmean(glm_output.trial_type.beta_weights(1,analysis_win_idx));
+encoding_beta(1,2) = nanmean(glm_output.ssd.beta_weights(1,analysis_win_idx));
+encoding_beta(1,3) = nanmean(glm_output.ssd.beta_weights(2,analysis_win_idx));
 
+end
 
-
-
-
-%% 
-
-
-figure;
-subplot(4,2,[1 3]); hold on
-plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttx.canceled.all.all,:)),'r')
-plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttx.nostop.all.all,:)),'k')
-xlim([-250 1000])
-
-subplot(4,2,5)
-imagesc('XData',window_time,'YData',ones(1,length(window_time)),'CData',glm_output.trial_type.sig_times(1,:))
-xlim([-250 1000])
-
-subplot(4,2,7)
-plot(window_time, glm_output.trial_type.beta_weights(1,:))
-xlim([-250 1000])
-
-
-subplot(4,2,[2 4]); hold on
-plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttm.C.C{1},:)),'color',[1 0 0 0.33])
-plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttm.C.C{2},:)),'color',[1 0 0 0.66])
-plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttm.C.C{3},:)),'color',[1 0 0 0.99])
-xlim([-250 1000])
-
-subplot(4,2,6)
-imagesc('XData',window_time,'YData',ones(1,length(window_time)),'CData',glm_output.ssd.sig_times(2,:))
-xlim([-250 1000])
-
-subplot(4,2,8)
-plot(window_time, glm_output.ssd.beta_weights(2,:))
-xlim([-250 1000])
-
-
-
-
-
-
+%% Workpad: figure checks
+% 
+% figure;
+% subplot(4,2,[1 3]); hold on
+% plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttx.canceled.all.all,:)),'r')
+% plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttx.nostop.all.all,:)),'k')
+% xlim([-250 1000])
+% 
+% subplot(4,2,5)
+% imagesc('XData',window_time,'YData',ones(1,length(window_time)),'CData',glm_output.trial_type.sig_times(1,:))
+% xlim([-250 1000])
+% 
+% subplot(4,2,7)
+% plot(window_time, glm_output.trial_type.beta_weights(1,:))
+% xlim([-250 1000])
+% 
+% 
+% subplot(4,2,[2 4]); hold on
+% plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttm.C.C{1},:)),'color',[1 0 0 0.33])
+% plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttm.C.C{2},:)),'color',[1 0 0 0.66])
+% plot(window_time,nanmean(window_sdf(behavior(behaviorIdx,:).ttm.C.C{3},:)),'color',[1 0 0 0.99])
+% xlim([-250 1000])
+% 
+% subplot(4,2,6)
+% imagesc('XData',window_time,'YData',ones(1,length(window_time)),'CData',glm_output.ssd.sig_times(2,:))
+% xlim([-250 1000])
+% 
+% subplot(4,2,8)
+% plot(window_time, glm_output.ssd.beta_weights(2,:))
+% xlim([-250 1000])
 
 
 

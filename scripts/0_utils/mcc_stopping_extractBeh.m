@@ -1,4 +1,5 @@
 function behavior = mcc_stopping_extractBeh(dirs,dataFiles_beh)
+a = 0;
 
 % Looping through each of the individual data files
 parfor dataFileIdx = 1:length(dataFiles_beh)
