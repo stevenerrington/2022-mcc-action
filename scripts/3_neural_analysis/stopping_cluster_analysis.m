@@ -1,22 +1,25 @@
 
 %% Setup & parameterize clustering
 input_neurons = [];
-input_neurons = neuron_index.trial_type.canceled;
+input_neurons = find(mcc_analysis_table.glm_trial == 1);
 
-canc_sdf_in = []; nostop_sdf_in = [];
+canc_sdf_in = []; nostop_sdf_in = []; noncanc_sdf_in = [];
 
 for neuron_i = 1:length(input_neurons)
     neuron_j = input_neurons(neuron_i);
     canc_sdf_in(neuron_i,:) = nanmean(mcc_analysis_table.sdf_canceled{neuron_j});
     nostop_sdf_in(neuron_i,:) = nanmean(mcc_analysis_table.sdf_nostop{neuron_j});
+    noncanc_sdf_in(neuron_i,:) = nanmean(mcc_analysis_table.sdf_noncanc{neuron_j});
+
     diff_sdf_in(neuron_i,:) = canc_sdf_in(neuron_i,:)-nostop_sdf_in(neuron_i,:);
+    diff_sdf_in(neuron_i,:) = diff_sdf_in(neuron_i,:)./max(diff_sdf_in(neuron_i,1000+[0:600]));
 end
 
 inputSDF = [];
-inputSDF = {canc_sdf_in,nostop_sdf_in};
+inputSDF = {diff_sdf_in};
 
-sdfTimes = {[-1000:2000],[-1000:2000]};
-sdfEpoch = {[0:600],[0:600]};
+sdfTimes = {[-1000:2000]};
+sdfEpoch = {[0:600]};
 
 colorMapping = [1,1];
 
@@ -24,8 +27,15 @@ colorMapping = [1,1];
 [sortIDs,idxDist, raw, respSumStruct, rawLink,idK] =...
     consensusCluster(inputSDF,sdfTimes,'-e',sdfEpoch,'-ei',colorMapping,'-er',sdfEpoch,'-c',0.5);
 
+%% Cluster identification
 % Refine number of clusters (iterative with below dendrogram)
-myK = 5; % idK = based on consensusCluster raw output
+myK = 10; % idK = based on consensusCluster raw output
+
+%% Identify/assign neurons to clusters
+nClusters_manual = myK; clusterNeurons = [];
+for cluster_i = 1:nClusters_manual
+    clusterNeurons{cluster_i} = find(sortIDs(:,nClusters_manual) == cluster_i );
+end
 
 %% Plot dendrogram
 figure('Renderer', 'painters', 'Position', [100 100 500 400]);
@@ -43,16 +53,9 @@ for ir = 1:size(raw,1)
     end
 end
 imagesc(raw(outPerm,outPerm));
-colormap(flipud(viridis));
+colormap(flipud(summer));
 xlabel('Unit Number'); set(gca,'YAxisLocation','Left');
 set(gca,'CLim',[-1 1])
-
-
-%% Identify/assign neurons to clusters
-nClusters_manual = myK; clusterNeurons = [];
-for cluster_i = 1:nClusters_manual
-    clusterNeurons{cluster_i} = find(sortIDs(:,nClusters_manual) == cluster_i );
-end
 
 %% Plot cluster populations
 % Generate a quick population sdf of each cluster
@@ -62,17 +65,48 @@ for cluster_i = 1:nClusters_manual
     example_neuron_subfig = subplot(1,1,1); hold on
     plot(sdfTimes{1},nanmean(canc_sdf_in(clusterNeurons{cluster_i},:),1), 'color', [colors.canceled]);
     plot(sdfTimes{1},nanmean(nostop_sdf_in(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop]);
+%     plot(sdfTimes{1},nanmean(noncanc_sdf_in(clusterNeurons{cluster_i},:),1), 'color', [colors.noncanc]);
     vline([0], 'k--'); xlim([-250 750])
     
     title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(clusterNeurons{cluster_i}))])
-
 end
 
+
+%% Merge clusters
+% Merge: 4, 8 (transient)
+
+% Keep: 3(suppressed), 6 (facilitated, sustained), 7 (transient
+% suppressed), 9 (oscil).
+
+% Remove: 1, 2, 5, 10
+
+cluster_merge_idx = {[4,8],3,6,7,9};
+
+for cluster_merge_i = 1:length(cluster_merge_idx)
+    cluster_neuron_id{cluster_merge_i} = clusterNeurons{cluster_merge_idx{cluster_merge_i}};
+    cluster_neuron_id{cluster_merge_i} = sort(cluster_neuron_id{cluster_merge_i});
+end
+
+%% Check merge population sdf
+% Generate a quick population sdf of each cluster
+for cluster_i = 1:length(cluster_neuron_id)
+    figure('Renderer', 'painters', 'Position', [100 100 500 300]);hold on
+
+    example_neuron_subfig = subplot(1,1,1); hold on
+    plot(sdfTimes{1},nanmean(canc_sdf_in(cluster_neuron_id{cluster_i},:),1), 'color', [colors.canceled]);
+    plot(sdfTimes{1},nanmean(nostop_sdf_in(cluster_neuron_id{cluster_i},:),1), 'color', [colors.nostop]);
+    plot(sdfTimes{1},nanmean(noncanc_sdf_in(cluster_neuron_id{cluster_i},:),1), 'color', [colors.noncanc]);
+    vline([0], 'k--'); xlim([-250 750])
+    
+    title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(cluster_neuron_id{cluster_i}))])
+end
+
+%% Plot individual cluster neurons
 % Print each neuron within a cluster
-for cluster_i = 1:nClusters_manual
+for cluster_i = 1:length(cluster_neuron_id)
     
     input_neurons_cluster = [];
-    input_neurons_cluster = clusterNeurons{cluster_i};
+    input_neurons_cluster = cluster_neuron_id{cluster_i};
     
     n_plot_x = 4; n_plot_y = 3; n_plot_sheet = n_plot_x*n_plot_y;
     n_batches = ceil(size(input_neurons_cluster,1)/n_plot_sheet);
@@ -119,20 +153,30 @@ end
 % Generate a quick population sdf of each cluster
 figure('Renderer', 'painters', 'Position', [100 100 750 400]);hold on
 
-for cluster_i = 1:nClusters_manual
-    sdf_in_diff = []; sdf_in_diff = diff_sdf_in(clusterNeurons{cluster_i},:);
-    sdf_in_diff = sdf_in_diff./max(abs(sdf_in_diff(:,[0:600]+1000)),[],2);
+n_clusters = length(cluster_neuron_id);
+
+for cluster_i = 1:n_clusters
+    sdf_in_diff = []; sdf_in_diff = diff_sdf_in(cluster_neuron_id{cluster_i},:);
     
-    subplot(3,5,[cluster_i]); hold on
-    plot(sdfTimes{1},nanmean(canc_sdf_in(clusterNeurons{cluster_i},:),1), 'color', [colors.canceled]);
-    plot(sdfTimes{1},nanmean(nostop_sdf_in(clusterNeurons{cluster_i},:),1), 'color', [colors.nostop]);
+    temp_a = []; peak_latency = []; neuron_order = [];
+    temp_a = sdf_in_diff(:,1000+[0:600]);
+    
+    for neuron_i = 1:size(temp_a,1)
+        peak_latency(neuron_i,1) = find(temp_a(neuron_i,:) == max(temp_a(neuron_i,:)),1);
+    end
+    [~,neuron_order] = sort(peak_latency,'ascend'); % sorted from max to min
+    
+    
+    subplot(3,n_clusters,[cluster_i]); hold on
+    plot(sdfTimes{1},nanmean(canc_sdf_in(cluster_neuron_id{cluster_i},:),1), 'color', [colors.canceled]);
+    plot(sdfTimes{1},nanmean(nostop_sdf_in(cluster_neuron_id{cluster_i},:),1), 'color', [colors.nostop]);
     vline([0], 'k--'); xlim([-250 750])
     
-    subplot(3,5,[cluster_i+5 cluster_i+10]); hold on
-    imagesc('XData',[-1000:2000],'YData',[1:size(sdf_in_diff,1)],'CData',sdf_in_diff)
+    subplot(3,n_clusters,[cluster_i+n_clusters cluster_i+n_clusters*2]); hold on
+    imagesc('XData',[-1000:2000],'YData',[1:size(sdf_in_diff,1)],'CData',sdf_in_diff(neuron_order,:))
     colormap('viridis')
-    vline([0], 'k--'); xlim([-250 750]); ylim([1-0.5 max(cellfun(@length,clusterNeurons))+0.5]); caxis([0 1])
-    title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(clusterNeurons{cluster_i}))])
+    vline([0], 'k--'); xlim([-200 600]); ylim([1-0.5 max(cellfun(@length,cluster_neuron_id))+0.5]); caxis([0 1])
+    title(['Cluster ' int2str(cluster_i) ' - n: ' int2str(length(cluster_neuron_id{cluster_i}))])
     set(gca,'YDir','Reverse')
     
 end
@@ -162,6 +206,10 @@ for cluster_i = 1:5
     main_sdf_fig_out.draw
 end
 
+%% Get reference of neurons relative to analysis table
+input_neurons = [];
+input_neurons = find(mcc_analysis_table.glm_trial == 1);
 
-
-
+for cluster_merge_i = 1:length(cluster_merge_idx)
+    cluster_neuron_id_table{cluster_merge_i} = input_neurons(cluster_neuron_id{cluster_merge_i});
+end

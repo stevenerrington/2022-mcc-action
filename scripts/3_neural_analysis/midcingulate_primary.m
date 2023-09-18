@@ -42,7 +42,6 @@ mcc_map_info = mcc_dv_mapCh(dajo_datamap_curated, behavior, dirs); % needs comme
 % consecutive bins (50 ms).
 
 stopping_glm_analysis
-ssd_glm_analysis
 
 % (2)
 % Cluster to discover common patterns of activity at the single-neuron
@@ -50,6 +49,8 @@ ssd_glm_analysis
 % by SSD
 
 stopping_cluster_analysis
+
+canc_ssd_activity
 
 % (3)
 % Population dynamics. Performed on significant neurons and entire
@@ -67,3 +68,5 @@ stopping_cluster_analysis
 % Dimensionality comparison between MCC and DMFC
 
 
+%% Hold
+ssd_glm_analysis
